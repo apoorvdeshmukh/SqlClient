@@ -12156,15 +12156,21 @@ namespace Microsoft.Data.SqlClient
 
                         if (isDataFeed)
                         {
+                            Encoding encoding = null;
                             Debug.Assert(type.IsPlp, "Stream assigned to non-PLP was not converted!");
                             TextDataFeed tdf = value as TextDataFeed;
                             if (tdf == null)
                             {
-                                return NullIfCompletedWriteTask(WriteXmlFeed((XmlDataFeed)value, stateObj, IsBOMNeeded(type, value), Encoding.Unicode, paramSize));
+                                encoding = Encoding.Unicode;
+                                return NullIfCompletedWriteTask(WriteXmlFeed((XmlDataFeed)value, stateObj, IsBOMNeeded(type, value), encoding, paramSize));
                             }
                             else
                             {
-                                return NullIfCompletedWriteTask(WriteTextFeed(tdf, null, IsBOMNeeded(type, value), stateObj, paramSize));
+                                if (type.NullableType == TdsEnums.SQLJSON)
+                                {
+                                    encoding = Encoding.UTF8;
+                                }
+                                return NullIfCompletedWriteTask(WriteTextFeed(tdf, encoding, IsBOMNeeded(type, value), stateObj, paramSize));
                             }
                         }
                         else

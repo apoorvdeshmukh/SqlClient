@@ -598,7 +598,14 @@ namespace Microsoft.Data.SqlClient
                         }
                         else
                         {
-                            AppendColumnNameAndTypeName(updateBulkCommandText, metadata.column, metadata.type.ToString());
+                            if (metadata.type == SqlDbTypeExtensions.Json)
+                            {
+                                AppendColumnNameAndTypeName(updateBulkCommandText, metadata.column, "json");
+                            }
+                            else
+                            {
+                                AppendColumnNameAndTypeName(updateBulkCommandText, metadata.column, metadata.type.ToString());
+                            }
                         }
 
                         switch (metadata.metaType.NullableType)
@@ -645,7 +652,7 @@ namespace Microsoft.Data.SqlClient
                                         }
                                         updateBulkCommandText.AppendFormat((IFormatProvider)null, "({0})", size);
                                     }
-                                    else if (metadata.metaType.IsPlp && metadata.metaType.SqlDbType != SqlDbType.Xml)
+                                    else if (metadata.metaType.IsPlp && metadata.metaType.SqlDbType != SqlDbType.Xml && metadata.metaType.SqlDbType != SqlDbTypeExtensions.Json)
                                     {
                                         // Partial length column prefix (max)
                                         updateBulkCommandText.Append("(max)");
@@ -1550,6 +1557,7 @@ namespace Microsoft.Data.SqlClient
                     case TdsEnums.SQLNCHAR:
                     case TdsEnums.SQLNVARCHAR:
                     case TdsEnums.SQLNTEXT:
+                    //case TdsEnums.SQLJSON:
                         mt = MetaType.GetMetaTypeFromSqlDbType(type.SqlDbType, false);
                         value = SqlParameter.CoerceValue(value, mt, out coercedToDataFeed, out typeChanged, false);
                         if (!coercedToDataFeed)
@@ -1590,6 +1598,7 @@ namespace Microsoft.Data.SqlClient
                         }
                         break;
                     case TdsEnums.SQLXMLTYPE:
+                    case TdsEnums.SQLJSON:
                         // Could be either string, SqlCachedBuffer, XmlReader or XmlDataFeed
                         Debug.Assert((value is XmlReader) || (value is SqlCachedBuffer) || (value is string) || (value is SqlString) || (value is XmlDataFeed), "Invalid value type of Xml datatype");
                         if (value is XmlReader)
@@ -1598,6 +1607,7 @@ namespace Microsoft.Data.SqlClient
                             typeChanged = true;
                             coercedToDataFeed = true;
                         }
+            
                         break;
 
                     default:

@@ -10738,7 +10738,7 @@ namespace Microsoft.Data.SqlClient
                         default:
                             stateObj.WriteByte(md.tdsType);
                             WriteTokenLength(md.tdsType, md.length, stateObj);
-                            if (md.metaType.IsCharType)
+                            if (md.metaType.IsCharType && md.type != SqlDbTypeExtensions.Json)
                             {
                                 WriteUnsignedInt(md.collation._info, stateObj);
                                 stateObj.WriteByte(md.collation._sortId);
@@ -10981,6 +10981,10 @@ namespace Microsoft.Data.SqlClient
                         case TdsEnums.SQLNTEXT:
                             ccb = ((isSqlType) ? ((SqlString)value).Value.Length : ((string)value).Length) * 2;
                             break;
+                        case TdsEnums.SQLJSON:
+                            ccb = ((isSqlType) ? ((SqlJson)value).Value.Length : ((string)value).Length) * 2;
+                            ccbStringBytes = Encoding.UTF8.GetByteCount((string)value);
+                            break;
                         case TdsEnums.SQLXMLTYPE:
                             // Value here could be string or XmlReader
                             if (value is XmlReader)
@@ -10989,6 +10993,7 @@ namespace Microsoft.Data.SqlClient
                             }
                             ccb = ((isSqlType) ? ((SqlString)value).Value.Length : ((string)value).Length) * 2;
                             break;
+
 
                         default:
                             ccb = metadata.length;
@@ -11023,6 +11028,7 @@ namespace Microsoft.Data.SqlClient
                         case SqlDbType.VarBinary:
                         case SqlDbType.Xml:
                         case SqlDbType.Udt:
+                        case SqlDbTypeExtensions.Json:
                             // plp data
                             WriteUnsignedLong(TdsEnums.SQL_PLP_UNKNOWNLEN, stateObj);
                             break;

@@ -154,6 +154,9 @@ namespace Microsoft.Data.SqlClient
         // XML metadata substitute sequence
         private static readonly byte[] s_xmlMetadataSubstituteSequence = { 0xe7, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
+        // JSON metadata substitute sequence
+        private static readonly byte[] s_jsonMetadataSubstituteSequence = { 0xa7, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
         // size of Guid  (e.g. _clientConnectionId, ActivityId.Id)
         private const int GUID_SIZE = 16;
 
@@ -10734,6 +10737,9 @@ namespace Microsoft.Data.SqlClient
                         case SqlDbType.DateTimeOffset:
                             stateObj.WriteByte(md.tdsType);
                             stateObj.WriteByte(md.scale);
+                            break;
+                        case SqlDbTypeExtensions.Json:
+                            stateObj.WriteByteArray(s_jsonMetadataSubstituteSequence, s_jsonMetadataSubstituteSequence.Length, 0);
                             break;
                         default:
                             stateObj.WriteByte(md.tdsType);

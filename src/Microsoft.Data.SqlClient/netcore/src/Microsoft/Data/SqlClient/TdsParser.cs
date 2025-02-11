@@ -6745,6 +6745,7 @@ namespace Microsoft.Data.SqlClient
                 case TdsEnums.SQLBIGVARBINARY:
                 case TdsEnums.SQLVARBINARY:
                 case TdsEnums.SQLIMAGE:
+                case TdsEnums.SQLVECTOR:
                     {
                         // Note: Better not come here with plp data!!
                         Debug.Assert(length <= TdsEnums.MAXSIZE);
@@ -8049,11 +8050,26 @@ namespace Microsoft.Data.SqlClient
                     tokenLength = -1;
                     return TdsOperationStatus.Done;
                 }
+                else if (token == TdsEnums.SQLVECTOR)
+                {
+                    ushort value;
+                        result = stateObj.TryReadUInt16(out value);
+                        if (result != TdsOperationStatus.Done)
+                        {
+                            tokenLength = 0;
+                            return result;
+                        }
+                        tokenLength = value;
+                        return TdsOperationStatus.Done;
+                    
+                }
+
             }
 
             switch (token & TdsEnums.SQLLenMask)
             {
                 case TdsEnums.SQLFixedLen:
+
                     tokenLength = ((0x01 << ((token & 0x0c) >> 2))) & 0xff;
                     return TdsOperationStatus.Done;
                 case TdsEnums.SQLZeroLen:
@@ -8061,6 +8077,7 @@ namespace Microsoft.Data.SqlClient
                     return TdsOperationStatus.Done;
                 case TdsEnums.SQLVarLen:
                 case TdsEnums.SQLVarCnt:
+                
                     if (0 != (token & 0x80))
                     {
                         ushort value;
@@ -12156,6 +12173,7 @@ namespace Microsoft.Data.SqlClient
                 case TdsEnums.SQLBIGVARBINARY:
                 case TdsEnums.SQLIMAGE:
                 case TdsEnums.SQLUDT:
+                case TdsEnums.SQLVECTOR:
                     {
                         // An array should be in the object
                         Debug.Assert(isDataFeed || value is byte[], "Value should be an array of bytes");

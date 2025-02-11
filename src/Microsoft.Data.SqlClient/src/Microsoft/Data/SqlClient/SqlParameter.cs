@@ -1603,6 +1603,7 @@ namespace Microsoft.Data.SqlClient
                         case SqlDbType.VarBinary:
                         case SqlDbType.Image:
                         case SqlDbType.Timestamp:
+                        case SqlDbTypeExtensions.Vector:
                             coercedSize = (!HasFlag(SqlParameterFlags.IsNull) && (!HasFlag(SqlParameterFlags.CoercedValueIsDataFeed))) ? (BinarySize(val, HasFlag(SqlParameterFlags.CoercedValueIsSqlType))) : 0;
                             _actualSize = (ShouldSerializeSize() ? Size : 0);
                             _actualSize = ((ShouldSerializeSize() && (_actualSize <= coercedSize)) ? _actualSize : coercedSize);

@@ -6463,7 +6463,8 @@ namespace Microsoft.Data.SqlClient
                     if (0 == size)
                         size = mt.IsSizeInCharacters ? (TdsEnums.MAXSIZE >> 1) : TdsEnums.MAXSIZE;
 
-                    paramList.Append(size);
+                    // For vectors 8 is the size of the header and 4 is the size of the element type which is single-precision float in this case.
+                    paramList.Append((mt.SqlDbType == SqlDbTypeExtensions.Vector) ? (size - 8) / 4 : size);
                     paramList.Append(')');
                 }
                 else if (mt.IsPlp && (mt.SqlDbType != SqlDbType.Xml) && (mt.SqlDbType != SqlDbType.Udt) && (mt.SqlDbType != SqlDbTypeExtensions.Json))

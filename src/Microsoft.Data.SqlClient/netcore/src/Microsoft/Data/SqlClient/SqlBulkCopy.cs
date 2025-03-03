@@ -600,6 +600,10 @@ namespace Microsoft.Data.SqlClient
                         {
                             AppendColumnNameAndTypeName(updateBulkCommandText, metadata.column, "json");
                         }
+                        else if (metadata.type == SqlDbTypeExtensions.Vector)
+                        {
+                            AppendColumnNameAndTypeName(updateBulkCommandText, metadata.column, "vector");
+                        }
                         else
                         {
                             AppendColumnNameAndTypeName(updateBulkCommandText, metadata.column, metadata.type.ToString());
@@ -643,6 +647,9 @@ namespace Microsoft.Data.SqlClient
                                             case TdsEnums.SQLNVARCHAR:
                                             case TdsEnums.SQLNTEXT:
                                                 size /= 2;
+                                                break;
+                                            case TdsEnums.SQLVECTOR:
+                                                size = (metadata.length - 8) / 4;
                                                 break;
                                             default:
                                                 break;
@@ -1548,6 +1555,7 @@ namespace Microsoft.Data.SqlClient
                     case TdsEnums.SQLTIME:
                     case TdsEnums.SQLDATETIME2:
                     case TdsEnums.SQLDATETIMEOFFSET:
+                    case TdsEnums.SQLVECTOR:
                         mt = MetaType.GetMetaTypeFromSqlDbType(type.SqlDbType, false);
                         value = SqlParameter.CoerceValue(value, mt, out coercedToDataFeed, out typeChanged, false);
                         break;

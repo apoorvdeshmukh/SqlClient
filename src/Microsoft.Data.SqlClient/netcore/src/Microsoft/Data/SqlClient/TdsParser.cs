@@ -11368,6 +11368,12 @@ namespace Microsoft.Data.SqlClient
                 {
                     tokenLength = 8;
                 }
+                else if (token == TdsEnums.SQLVECTOR)
+                {
+                    tokenLength = 2;
+                    WriteShort(length, stateObj);
+                    return;
+                }
             }
 
             if (tokenLength == 0)

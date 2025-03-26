@@ -20,5 +20,13 @@ The <xref:Microsoft.Data.SqlDbTypeExtensions> class provides <xref:System.Data.S
         <see cref="T:System.Data.SqlDbType" /> enum value for JSON datatype.
       </returns>
     </SqlJson>
+    <SqlVector name="default">
+      <summary>
+        Gets the <see cref="T:System.Data.SqlDbType" /> enum value for the Vector datatype.
+      </summary>
+      <returns>
+        <see cref="T:System.Data.SqlDbType" /> enum value for Vector datatype.
+      </returns>
+    </SqlVector>    
   </members>
 </docs>

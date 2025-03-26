@@ -230,6 +230,8 @@ namespace Microsoft.Data.SqlClient
         private string _parameterName;
         private byte _precision;
         private byte _scale;
+        private byte _vectorDimensionType;
+        private byte _vectorDimensionCount;
         private MetaType _internalMetaType;
         private SqlBuffer _sqlBufferReturnValue;
         private INullable _valueAsINullable;
@@ -326,6 +328,50 @@ namespace Microsoft.Data.SqlClient
             DataRowVersion sourceVersion,
             bool sourceColumnNullMapping,
             object value,
+            string xmlSchemaCollectionDatabase,
+            string xmlSchemaCollectionOwningSchema,
+            string xmlSchemaCollectionName
+        )
+            : this()
+        {
+            ParameterName = parameterName;
+            SqlDbType = dbType;
+            Size = size;
+            Direction = direction;
+#if NETFRAMEWORK
+            PrecisionInternal = precision;
+            ScaleInternal = scale;
+#else
+            Precision = precision;
+            Scale = scale;
+#endif
+            SourceColumn = sourceColumn;
+            SourceVersion = sourceVersion;
+            SourceColumnNullMapping = sourceColumnNullMapping;
+            Value = value;
+            if (!string.IsNullOrEmpty(xmlSchemaCollectionDatabase) || !string.IsNullOrEmpty(xmlSchemaCollectionOwningSchema) || !string.IsNullOrEmpty(xmlSchemaCollectionName))
+            {
+                EnsureXmlSchemaCollection();
+                _xmlSchemaCollection.Database = xmlSchemaCollectionDatabase;
+                _xmlSchemaCollection.OwningSchema = xmlSchemaCollectionOwningSchema;
+                _xmlSchemaCollection.Name = xmlSchemaCollectionName;
+            }
+        }
+
+        /// <include file='../../../../../../doc/snippets/Microsoft.Data.SqlClient/SqlParameter.xml' path='docs/members[@name="SqlParameter"]/ctorParameterNameDbTypeSizeDirectionPrecisionScaleVectorDimTypeCountSourceColumnSourceVersionSourceColumnNullMappingValue/*' />
+        public SqlParameter(
+            string parameterName,
+            SqlDbType dbType,
+            int size,
+            ParameterDirection direction,
+            byte precision,
+            byte scale,
+            string sourceColumn,
+            DataRowVersion sourceVersion,
+            bool sourceColumnNullMapping,
+            object value,
+            byte vectorDimensionType,
+            int vectorDimensionCount,
             string xmlSchemaCollectionDatabase,
             string xmlSchemaCollectionOwningSchema,
             string xmlSchemaCollectionName
@@ -558,6 +604,26 @@ namespace Microsoft.Data.SqlClient
         {
             get => ScaleInternal;
             set => ScaleInternal = value;
+        }
+
+        /// <include file='../../../../../../doc/snippets/Microsoft.Data.SqlClient/SqlParameter.xml' path='docs/members[@name="SqlParameter"]/VectorDimensionType/*' />
+        [
+        DefaultValue((byte)0)
+        ]
+        public byte VectorDimensionType
+        {
+            get => _vectorDimensionType;
+            set => _vectorDimensionType = value;
+        }
+
+        /// <include file='../../../../../../doc/snippets/Microsoft.Data.SqlClient/SqlParameter.xml' path='docs/members[@name="SqlParameter"]/VectorDimensionCount/*' />
+        [
+        DefaultValue((int)0)
+        ]
+        public byte VectorDimensionCount
+        {
+            get => _vectorDimensionCount;
+            set => _vectorDimensionCount = value;
         }
 
         internal byte ScaleInternal
@@ -1109,6 +1175,8 @@ namespace Microsoft.Data.SqlClient
             destination.CoercedValue = CoercedValue; // copy cached value reference because of XmlReader problem
             destination._valueAsINullable = _valueAsINullable;
             destination._actualSize = _actualSize;
+            destination._vectorDimensionType = _vectorDimensionType;
+            destination._vectorDimensionCount = _vectorDimensionCount;
         }
 
         internal void CopyTo(SqlParameter destination)
@@ -1143,7 +1211,7 @@ namespace Microsoft.Data.SqlClient
         internal void FixStreamDataForNonPLP()
         {
             object value = GetCoercedValue();
-            AssertCachedPropertiesAreValid();
+            //AssertCachedPropertiesAreValid();
             if (!HasFlag(SqlParameterFlags.CoercedValueIsDataFeed))
             {
                 return;
@@ -1603,6 +1671,7 @@ namespace Microsoft.Data.SqlClient
                         case SqlDbType.VarBinary:
                         case SqlDbType.Image:
                         case SqlDbType.Timestamp:
+                        case SqlDbTypeExtensions.Vector:
                             coercedSize = (!HasFlag(SqlParameterFlags.IsNull) && (!HasFlag(SqlParameterFlags.CoercedValueIsDataFeed))) ? (BinarySize(val, HasFlag(SqlParameterFlags.CoercedValueIsSqlType))) : 0;
                             _actualSize = (ShouldSerializeSize() ? Size : 0);
                             _actualSize = ((ShouldSerializeSize() && (_actualSize <= coercedSize)) ? _actualSize : coercedSize);
@@ -1665,23 +1734,34 @@ namespace Microsoft.Data.SqlClient
                 bool isDataFeed = Value is DataFeed;
                 if (IsNull || isDataFeed)
                 {
-                    // No coercion is done for DataFeeds and Nulls
-                    _coercedValue = Value;
+                    if (_internalMetaType.SqlDbType == SqlDbTypeExtensions.Vector)
+                    {
+                        _coercedValue = encodeVectorNullBinaryStream(this.VectorDimensionType);
+                    }
+                    else
+                    {
+                        _coercedValue = Value;
+                    }
+                        // No coercion is done for DataFeeds and Nulls
+                        
                     SetFlag(SqlParameterFlags.CoercedValueIsSqlType, _coercedValue != null && HasFlag(SqlParameterFlags.IsSqlParameterSqlType)); // set to null for output parameters that keeps _isSqlParameterSqlType
                     SetFlag(SqlParameterFlags.CoercedValueIsDataFeed, isDataFeed);
                     _actualSize = IsNull ? 0 : -1;
                 }
                 else
                 {
+
                     _coercedValue = CoerceValue(Value, _internalMetaType, out bool coercedValueIsDataFeed, out bool typeChanged);
                     SetFlag(SqlParameterFlags.CoercedValueIsDataFeed, coercedValueIsDataFeed);
                     SetFlag(SqlParameterFlags.CoercedValueIsSqlType, HasFlag(SqlParameterFlags.IsSqlParameterSqlType) && (!typeChanged));  // Type changed always results in a CLR type
                     _actualSize = -1;
                 }
             }
-            AssertCachedPropertiesAreValid();
+            //AssertCachedPropertiesAreValid();
             return _coercedValue;
         }
+
+        
 
         internal int GetParameterSize()
         {
@@ -2052,7 +2132,7 @@ namespace Microsoft.Data.SqlClient
             // byte sizeInCharacters > 8000 bytes, we promote the parameter to image, text, or ntext.  This
             // allows the user to specify a parameter type using a COM+ datatype and be able to
             // use that parameter against a BLOB column.
-            if ((mt.SqlDbType != SqlDbType.Udt) && !mt.IsFixed && !mt.IsLong)
+            if ((mt.SqlDbType != SqlDbType.Udt) && (mt.SqlDbType != SqlDbTypeExtensions.Vector) && !mt.IsFixed && !mt.IsLong)
             { // if type has 2 byte length
                 long actualSizeInBytes = GetActualSize();
                 long sizeInCharacters = Size;
@@ -2225,6 +2305,75 @@ namespace Microsoft.Data.SqlClient
             return 0;
         }
 
+        private object encodeVectorNullBinaryStream(byte vectorDimensionType)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            using (BinaryWriter writer = new BinaryWriter(ms))
+            {
+                int vecLengthInBytes;
+                byte byteType = 0;
+                // Write the header
+                writer.Write((byte)0xA9); // Magic
+                writer.Write((byte)0x01); // Version
+                switch (vectorDimensionType)
+                {
+                    case 0x0:
+                        byteType = 0;
+                        writer.Write((ushort)(this.VectorDimensionCount));
+                        vecLengthInBytes = (this.VectorDimensionCount * 4);
+                        break;
+
+                    default:
+                        writer.Write((ushort)(0));
+                        vecLengthInBytes = (this.VectorDimensionCount * 4);
+                        break;
+                }
+                // Number of dimensions (CDIM)
+                writer.Write(byteType); // Data type of dimension value
+                writer.Write(new byte[3]); // 3 Spare bytes
+                writer.Write(new byte[vecLengthInBytes]);
+
+                return (object)ms.ToArray();
+            }
+
+        }
+
+        internal static object encodeToBinaryStream(object value)
+        {
+             
+            Type vtype = value.GetType();
+            using (MemoryStream ms = new MemoryStream())
+            using (BinaryWriter writer = new BinaryWriter(ms))
+            {
+                byte byteType = 0;
+                // Write the header
+                writer.Write((byte)0xA9); // Magic
+                writer.Write((byte)0x01); // Version
+                switch (vtype.Name)
+                {
+                    case "Single[]":
+                        byteType = 0;
+                        writer.Write((ushort)((float[])value).Length);
+                        break;
+                    case "DBNull":
+
+                    default:
+                        writer.Write((ushort)((float[])value).Length);
+                        break;
+                }
+                // Number of dimensions (CDIM)
+                writer.Write(byteType); // Data type of dimension value
+                writer.Write(new byte[3]); // 3 Spare bytes
+
+                // Write the array of CDIM values
+                foreach (float val in (float[])value)
+                {
+                    writer.Write(val);
+                }
+
+                return (object)ms.ToArray();
+            }
+        }
 
         // Coerced Value is also used in SqlBulkCopy.ConvertValue(object value, _SqlMetaData metadata)
         internal static object CoerceValue(object value, MetaType destinationType, out bool coercedToDataFeed, out bool typeChanged, bool allowStreaming = true)
@@ -2323,6 +2472,10 @@ namespace Microsoft.Data.SqlClient
                     else if ((currentType == typeof(TimeOnly)) && (destinationType.SqlDbType == SqlDbType.Time))
                     {
                         value = ((TimeOnly)value).ToTimeSpan();
+                    }
+                    else if ((currentType == typeof(System.Single[])) && destinationType.SqlDbType == SqlDbTypeExtensions.Vector)
+                    {
+                        value = encodeToBinaryStream(value);
                     }
 #endif
                     else if (

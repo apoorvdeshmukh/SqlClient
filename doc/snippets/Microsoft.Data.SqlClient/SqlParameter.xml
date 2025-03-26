@@ -407,6 +407,59 @@
         The <see cref="P:Microsoft.Data.SqlClient.SqlParameter.Size" /> and <see cref="P:Microsoft.Data.SqlClient.SqlParameter.Precision" /> are inferred from the value of the <paramref name="dbType" /> parameter if they are not explicitly set in the <paramref name="size" /> and <paramref name="precision" /> parameters.
       </remarks>
     </ctorParameterNameDbTypeSizeDirectionPrecisionScaleSourceColumnSourceVersionSourceColumnNullMappingValue>
+    <ctorParameterNameDbTypeSizeDirectionPrecisionScaleVectorDimTypeCountSourceColumnSourceVersionSourceColumnNullMappingValue>
+      <param name="parameterName">
+        The name of the parameter to map.
+      </param>
+      <param name="dbType">
+        One of the <see cref="T:System.Data.SqlDbType" /> values.
+      </param>
+      <param name="size">
+        The length of the parameter.
+      </param>
+      <param name="direction">
+        One of the <see cref="T:System.Data.ParameterDirection" /> values.
+      </param>
+      <param name="precision">
+        The total number of digits to the left and right of the decimal point to which <see cref="P:Microsoft.Data.SqlClient.SqlParameter.Value" /> is resolved.
+      </param>
+      <param name="scale">
+        The total number of decimal places to which <see cref="P:Microsoft.Data.SqlClient.SqlParameter.Value" /> is resolved.
+      </param>
+      <param name="sourceColumn">
+        The name of the source column ( <see cref="P:Microsoft.Data.SqlClient.SqlParameter.SourceColumn" />) if this <see cref="T:Microsoft.Data.SqlClient.SqlParameter" /> is used in a call to <see cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" /> >.
+      </param>
+      <param name="sourceVersion">
+        One of the <see cref="T:System.Data.DataRowVersion" /> values.
+      </param>
+      <param name="sourceColumnNullMapping">
+        <see langword="true" /> if the source column is nullable; <see langword="false" /> if it is not.
+      </param>
+      <param name="value">
+        An <see cref="T:System.Object" /> that is the value of the <see cref="T:Microsoft.Data.SqlClient.SqlParameter" />.
+      </param>
+      <param name="vectorDimensionType">
+        The Dimension Type of the Vector to be set for <see cref="T:Microsoft.Data.SqlClient.SqlParameter.Value" />.
+      </param>
+      <param name="vectorDimensionCount">
+        The number of Vector Dimensions the <see cref="T:Microsoft.Data.SqlClient.SqlParameter.Value" /> should contain.
+      </param>
+      <param name="xmlSchemaCollectionDatabase">
+        The name of the database where the schema collection for this XML instance is located.
+      </param>
+      <param name="xmlSchemaCollectionOwningSchema">
+        The owning relational schema where the schema collection for this XML instance is located.
+      </param>
+      <param name="xmlSchemaCollectionName">
+        The name of the schema collection for this parameter.
+      </param>
+      <summary>
+        Initializes a new instance of the <see cref="T:Microsoft.Data.SqlClient.SqlParameter" /> class that uses the parameter name, the type of the parameter, the length of the parameter the direction, the precision, the scale, the name of the source column, one of the <see cref="T:System.Data.DataRowVersion" /> values, a Boolean for source column mapping, the value of the <see langword="SqlParameter" />, the name of the database where the schema collection for this XML instance is located, the owning relational schema where the schema collection for this XML instance is located, and the name of the schema collection for this parameter.
+      </summary>
+      <remarks>
+        The <see cref="P:Microsoft.Data.SqlClient.SqlParameter.Size" /> and <see cref="P:Microsoft.Data.SqlClient.SqlParameter.Precision" /> are inferred from the value of the <paramref name="dbType" /> parameter if they are not explicitly set in the <paramref name="size" /> and <paramref name="precision" /> parameters.
+      </remarks>
+    </ctorParameterNameDbTypeSizeDirectionPrecisionScaleVectorDimTypeCountSourceColumnSourceVersionSourceColumnNullMappingValue>
     <CompareInfo>
       <summary>
         Gets or sets the <see cref="T:System.Globalization.CompareInfo" /> object that defines how string comparisons should be performed for this parameter.
@@ -973,6 +1026,16 @@
         </code>
       </example>
     </Value>
+    <VectorDimensionType>
+     <summary>
+        Gets or sets the vector dimension type of the parameter.
+      </summary>
+    </VectorDimensionType>
+    <VectorDimensionCount>
+     <summary>
+        Gets or sets the vector dimension count of the parameter.
+      </summary>
+    </VectorDimensionCount>
     <XmlSchemaCollectionDatabase>
       <summary>
         Gets the name of the database where the schema collection for this XML instance is located.

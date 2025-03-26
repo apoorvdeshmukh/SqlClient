@@ -6435,6 +6435,18 @@ namespace Microsoft.Data.SqlClient
                     paramList.Append(scale);
                     paramList.Append(')');
                 }
+                else if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
+                {
+                    byte vectorDimensionType = sqlParam.VectorDimensionType;
+                    int vectorDimensionCount = sqlParam.VectorDimensionCount;
+
+                    paramList.Append('(');
+
+                    paramList.Append(vectorDimensionCount);
+                    //paramList.Append(',');
+                    //paramList.Append(scale);
+                    paramList.Append(')');
+                }
                 else if (!mt.IsFixed && !mt.IsLong && mt.SqlDbType != SqlDbType.Timestamp && mt.SqlDbType != SqlDbType.Udt && SqlDbType.Structured != mt.SqlDbType)
                 {
                     int size = sqlParam.Size;
@@ -6475,13 +6487,16 @@ namespace Microsoft.Data.SqlClient
                     if (0 == size)
                         size = mt.IsSizeInCharacters ? (TdsEnums.MAXSIZE >> 1) : TdsEnums.MAXSIZE;
 
-                    paramList.Append(size);
-                    paramList.Append(')');
+                    //paramList.Append(size);
+                    // For vectors 8 is the size of the header and 4 is the size of the element type which is single-precision float in this case.
+                    //paramList.Append((mt.SqlDbType == SqlDbTypeExtensions.Vector) ? (size - 8) / 4 : size);
+                    //paramList.Append(')');
                 }
                 else if (mt.IsPlp && (mt.SqlDbType != SqlDbType.Xml) && (mt.SqlDbType != SqlDbType.Udt) && (mt.SqlDbType != SqlDbTypeExtensions.Json))
                 {
                     paramList.Append("(max) ");
                 }
+                
 
                 // set the output bit for Output or InputOutput parameters
                 if (sqlParam.Direction != ParameterDirection.Input)

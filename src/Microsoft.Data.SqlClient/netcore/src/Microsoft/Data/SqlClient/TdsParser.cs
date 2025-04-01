@@ -9948,6 +9948,11 @@ namespace Microsoft.Data.SqlClient
                             maxsize = 1;
                     }
 
+                    if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
+                    {
+                        maxsize = 8 + GetVectorSizeInBytes(param.VectorDimensionType) * param.VectorDimensionCount;
+                    }
+
                     WriteParameterVarLen(mt, maxsize, false /*IsNull*/, stateObj);
                 }
             }
@@ -10065,6 +10070,18 @@ namespace Microsoft.Data.SqlClient
             }
 
             return writeParamTask;
+        }
+
+        private int GetVectorSizeInBytes(byte vectorDimType)
+        {
+            switch (vectorDimType)
+            {
+                case 0x0:
+                    return 4;
+
+                default:
+                    return 4;
+            }
         }
 
         // This is in its own method to avoid always allocating the lambda in TDSExecuteRPCParameter

@@ -1736,7 +1736,8 @@ namespace Microsoft.Data.SqlClient
                 {
                     if (_internalMetaType.SqlDbType == SqlDbTypeExtensions.Vector)
                     {
-                        _coercedValue = encodeVectorNullBinaryStream(this.VectorDimensionType);
+                        //_coercedValue = encodeVectorNullBinaryStream(this.VectorDimensionType);
+                        _coercedValue = Value;
                     }
                     else
                     {

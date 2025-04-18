@@ -4251,6 +4251,15 @@ namespace Microsoft.Data.SqlClient
                 }
             }
 
+            if (tdsType == TdsEnums.SQLVECTOR)
+            {
+                result = stateObj.TryReadByte(out rec.scale);
+                if (result != TdsOperationStatus.Done)
+                {
+                    return result;
+                }
+            }
+
             if (rec.type == SqlDbType.Xml)
             {
                 // Read schema info

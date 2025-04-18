@@ -10946,6 +10946,11 @@ namespace Microsoft.Data.SqlClient
                         case SqlDbTypeExtensions.Json:
                             stateObj.WriteByteArray(s_jsonMetadataSubstituteSequence, s_jsonMetadataSubstituteSequence.Length, 0);
                             break;
+                        case SqlDbTypeExtensions.Vector:
+                            stateObj.WriteByte(md.tdsType);
+                            WriteTokenLength(md.tdsType, md.length, stateObj);
+                            stateObj.WriteByte(md.scale);
+                            break;
                         default:
                             stateObj.WriteByte(md.tdsType);
                             WriteTokenLength(md.tdsType, md.length, stateObj);
@@ -11161,6 +11166,7 @@ namespace Microsoft.Data.SqlClient
                         case TdsEnums.SQLBIGVARBINARY:
                         case TdsEnums.SQLIMAGE:
                         case TdsEnums.SQLUDT:
+                        case TdsEnums.SQLVECTOR:
                             ccb = (isSqlType) ? ((SqlBinary)value).Length : ((byte[])value).Length;
                             break;
                         case TdsEnums.SQLUNIQUEID:
@@ -11479,6 +11485,12 @@ namespace Microsoft.Data.SqlClient
                 else if (token == TdsEnums.SQLXMLTYPE)
                 {
                     tokenLength = 8;
+                }
+                else if (token == TdsEnums.SQLVECTOR)
+                {
+                    tokenLength = 2;
+                    WriteShort(length, stateObj);
+                    return;
                 }
             }
 

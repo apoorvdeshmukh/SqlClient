@@ -6435,6 +6435,13 @@ namespace Microsoft.Data.SqlClient
                     paramList.Append(scale);
                     paramList.Append(')');
                 }
+                else if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
+                {
+                    int vectorDimensionCount = (sqlParam.Size - 8) / 4;
+                    paramList.Append('(');
+                    paramList.Append(vectorDimensionCount);
+                    paramList.Append(')');
+                }
                 else if (!mt.IsFixed && !mt.IsLong && mt.SqlDbType != SqlDbType.Timestamp && mt.SqlDbType != SqlDbType.Udt && SqlDbType.Structured != mt.SqlDbType)
                 {
                     int size = sqlParam.Size;

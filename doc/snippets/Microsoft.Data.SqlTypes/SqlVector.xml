@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<docs>
+  <members name="SqlVector">
+    <SqlVector>
+      <summary>Represents the vector datatype in SQL Server.</summary>
+    </SqlVector>
+    <ctor1>
+      <param name="length"></param>
+      <summary>
+        Takes a <see cref="int"/> as input and initializes a new instance of the SqlVector class with length which represent vector value
+      </summary>
+    </ctor1>
+    <ctor2>
+      <param name="values"></param>
+      <summary>
+        Takes an array of values as input and initializes a new instance of the SqlVector class.
+      </summary>
+    </ctor2>
+    <IsNull>
+      <inheritdoc/>
+    </IsNull>
+    <ElementCount>
+      <summary>
+        Indicates the count of the elements in vector.
+      </summary>
+    </ElementCount>
+    <ElementName>
+      <summary>
+        Indicates the name of the type of the elements in vector.
+      </summary>
+    </ElementName>
+    <ElementSize>
+      <summary>
+        Indicates the size in bytes for the type of the element in vector.
+      </summary>
+    </ElementSize>
+    <Values>
+      <summary>
+        Represents array of elements contained in SqlVector.
+      </summary>
+    </Values>
+  </members>
+</docs>

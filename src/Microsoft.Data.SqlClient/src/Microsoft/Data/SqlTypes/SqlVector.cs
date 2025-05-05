@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 #nullable enable
 namespace Microsoft.Data.SqlTypes
@@ -39,6 +34,37 @@ namespace Microsoft.Data.SqlTypes
 
             _length = values.Length;
             _values = values;
+            _rawbytes = new byte[8 + _length * _elementSize];
+            initBytes();
+
+        }
+
+        private void initBytes()
+        {
+
+            int elementSize = _elementSize;
+            int arrayLength = _length;
+            byte[] byteArray = new byte[8 + arrayLength * elementSize];
+
+            // Prefix bytes
+            byteArray[0] = 0xA9;
+            byteArray[1] = 0x01;
+            byteArray[2] = (byte)(arrayLength & 0xFF);
+            byteArray[3] = (byte)((arrayLength >> 8) & 0xFF);
+
+            // Set type indicator
+            if (typeof(T) == typeof(float))
+                byteArray[4] = 0;
+            else
+                throw new NotSupportedException($"Type {typeof(T)} is not supported.");
+
+            // Remaining prefix bytes
+            byteArray[5] = 0x00;
+            byteArray[6] = 0x00;
+            byteArray[7] = 0x00;
+
+            // Copy data
+            Buffer.BlockCopy(_rawbytes, 0, byteArray, 8, arrayLength * elementSize);
         }
 
         // Convert a byte array to a T value, or throw ArgumentException.
@@ -128,14 +154,25 @@ namespace Microsoft.Data.SqlTypes
             }
         }
 
+        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/RawBytes/*' />
+        internal byte[] RawBytes
+        {
+            get
+            {
+                if (_rawbytes is null)
+                {
+                    throw new System.NullReferenceException(
+                        $"{nameof(T)} bytes is null");
+                }
+                return _rawbytes;
+            }
+        }
+
         #endregion
 
         #region Helpers
 
         // Acquire the name and size of each T element.
-        // 
-        // Throws ArgumentException if the size is < 1.
-        //
         private SqlVector()
         {
             var name = typeof(T).FullName;
@@ -161,6 +198,7 @@ namespace Microsoft.Data.SqlTypes
             }
 
             _elementSize = size;
+            _rawbytes = Array.Empty<byte>();
         }
 
         #endregion
@@ -171,6 +209,7 @@ namespace Microsoft.Data.SqlTypes
         private readonly int _elementSize;
         private readonly int _length;
         private readonly T[]? _values;
+        private readonly byte[] _rawbytes;
 
         #endregion
     }

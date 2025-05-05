@@ -2321,6 +2321,10 @@ namespace Microsoft.Data.SqlClient
                         value = ((TimeOnly)value).ToTimeSpan();
                     }
 #endif
+                    else if (currentType == typeof(SqlVector<float>))
+                    {
+                        value = (value as SqlVector<float>).RawBytes;
+                    }
                     else if (
                         TdsEnums.SQLTABLE == destinationType.TDSType &&
                         (

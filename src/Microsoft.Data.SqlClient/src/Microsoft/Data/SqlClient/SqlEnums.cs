@@ -232,7 +232,7 @@ namespace Microsoft.Data.SqlClient
                 case SqlDbTypeExtensions.Json:
                     return s_MetaJson;
                 case SqlDbTypeExtensions.Vector:
-                    return s_MetaVector;
+                    return s_MetaFloatVector;
                 case SqlDbType.Structured:
                     if (isMultiValued)
                     {
@@ -371,6 +371,8 @@ namespace Microsoft.Data.SqlClient
                         return MetaXml;
                     else if (dataType == typeof(SqlJson))
                         return s_MetaJson;
+                    else if (dataType == typeof(SqlVector<float>))
+                        return s_MetaFloatVector;
                     else if (dataType == typeof(SqlString))
                     {
                         return ((inferLen && !((SqlString)value).IsNull)
@@ -874,7 +876,7 @@ namespace Microsoft.Data.SqlClient
                 case TdsEnums.SQLJSON:
                     return s_MetaJson;
                 case TdsEnums.SQLVECTOR:
-                    return s_MetaVector;
+                    return s_MetaFloatVector;
 
                 case TdsEnums.SQLVOID:
                 default:
@@ -983,7 +985,7 @@ namespace Microsoft.Data.SqlClient
 
         internal static readonly MetaType s_MetaJson = new(255, 255, -1, false, true, true, TdsEnums.SQLJSON, TdsEnums.SQLJSON, MetaTypeName.JSON, typeof(string), typeof(string), SqlDbTypeExtensions.Json, DbType.String, 0);
 
-        internal static readonly MetaType s_MetaVector = new(255, 255, -1, false, false, false, TdsEnums.SQLVECTOR, TdsEnums.SQLVECTOR, MetaTypeName.VECTOR, typeof(byte[]), typeof(SqlBinary), SqlDbTypeExtensions.Vector, DbType.Binary, 2);
+        internal static readonly MetaType s_MetaFloatVector = new(255, 0, -1, false, false, false, TdsEnums.SQLVECTOR, TdsEnums.SQLVECTOR, MetaTypeName.VECTOR, typeof(byte[]), typeof(SqlBinary), SqlDbTypeExtensions.Vector, DbType.Binary, 2);
 
         public static TdsDateTime FromDateTime(DateTime dateTime, byte cb)
         {

@@ -6,7 +6,7 @@
 	</PropertyGroup>
 	
   <ItemGroup>
-    <Reference Include="System.Configuration" Condition="'$(TargetFramework)' == 'net462'"/>
+    <Reference Include="System.Configuration" Condition="'$(TargetFramework)' == 'net462'" />
 	  <Reference Include="System.Transactions" Condition="'$(TargetFramework)' == 'net462'" />
 	</ItemGroup>
 	<ItemGroup>
@@ -16,5 +16,12 @@
     <PackageReference Include="System.Data.Common" Version="$(SystemDataCommonVersion)" Condition="'$(TargetFramework)' == 'net462'" />
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="$(SystemRuntimeInteropServicesRuntimeInformationVersion)" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="$(SystemSecurityCryptographyPkcsVersion)" />
+    <PackageReference Include="System.Text.Json" Version="6.0.10" />
   </ItemGroup>
+
+  <!-- .NET Framework needs some extra packages. -->
+  <ItemGroup Condition="'$([MSBuild]::GetTargetFrameworkIdentifier($(TargetFramework)))' == '.NETFramework'">
+    <PackageReference Include="Half" Version="1.0.0" />
+  </ItemGroup>  
+  
 </Project>

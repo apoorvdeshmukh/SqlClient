@@ -6350,7 +6350,7 @@ namespace Microsoft.Data.SqlClient
             bool fAddSeparator = false;
 
             int count = 0;
-
+            
             count = parameters.Count;
             for (int i = 0; i < count; i++)
             {

@@ -139,6 +139,8 @@ namespace Microsoft.Data.SqlTypes
         public int ElementSize { get { throw null; } }
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/Values/*' />
         public T[] values { get { throw null; } }
+        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/RawBytes/*' />
+        public byte[] RawBytes { get { throw null; } }
     }
 }
 namespace Microsoft.Data.SqlClient

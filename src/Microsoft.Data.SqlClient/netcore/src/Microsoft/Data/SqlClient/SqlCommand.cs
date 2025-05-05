@@ -21,6 +21,7 @@ using Microsoft.Data.Common;
 using Microsoft.Data.Sql;
 using Microsoft.Data.SqlClient.Diagnostics;
 using Microsoft.Data.SqlClient.Server;
+using Microsoft.Data.SqlTypes;
 
 // NOTE: The current Microsoft.VSDesigner editor attributes are implemented for System.Data.SqlClient, and are not publicly available.
 // New attributes that are designed to work with Microsoft.Data.SqlClient and are publicly documented should be included in future.
@@ -6437,7 +6438,7 @@ namespace Microsoft.Data.SqlClient
                 }
                 else if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
                 {
-                    int vectorDimensionCount = (sqlParam.Size - 8) / 4;
+                    int vectorDimensionCount = (int)sqlParam.Value.GetType().GetProperty("ElementCount")?.GetValue(sqlParam.Value);
                     paramList.Append('(');
                     paramList.Append(vectorDimensionCount);
                     paramList.Append(')');

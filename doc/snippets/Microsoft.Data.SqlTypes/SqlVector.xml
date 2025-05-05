@@ -39,5 +39,10 @@
         Represents array of elements contained in SqlVector.
       </summary>
     </Values>
+    <RawBytes>
+      <summary>
+        Represents array of elements as bytes.
+      </summary>
+    </RawBytes>
   </members>
 </docs>

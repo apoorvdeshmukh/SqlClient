@@ -22,6 +22,14 @@ using Microsoft.Data.SqlTypes;
 
 namespace Microsoft.Data.SqlClient
 {
+    internal interface SqlVectorProperties
+    {
+        int ElementCount { get; }
+        int ElementSize { get; }
+        byte ElementType { get; }
+        // Any other properties that don't depend on <T>
+    }
+
     internal abstract class DataFeed
     {
     }
@@ -755,6 +763,12 @@ namespace Microsoft.Data.SqlClient
                 SetFlag(SqlParameterFlags.IsNull, _value == null || (_value == DBNull.Value) || (HasFlag(SqlParameterFlags.IsSqlParameterSqlType) && _valueAsINullable.IsNull));
                 _udtLoadError = null;
                 _actualSize = -1;
+                //if (value.GetType() == typeof(SqlVector<float>))
+                //{
+                //    var vectorProps = (SqlVectorProperties)value;
+                //    _actualSize = 8 + vectorProps.ElementCount * vectorProps.ElementSize;
+                //    _size = _actualSize;
+                //}
             }
         }
 
@@ -2179,6 +2193,11 @@ namespace Microsoft.Data.SqlClient
             {
                 // Unknown length
                 return 0;
+            }
+            if (value is SqlVector<float> vector)
+            {
+                var vectorProps = (SqlVectorProperties)value;
+                return (8 + vectorProps.ElementCount * vectorProps.ElementSize);
             }
             return ValueSizeCore(value);
         }

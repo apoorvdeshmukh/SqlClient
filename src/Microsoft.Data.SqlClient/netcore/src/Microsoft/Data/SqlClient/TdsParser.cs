@@ -9893,7 +9893,9 @@ namespace Microsoft.Data.SqlClient
 
                     if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
                     {
-                        maxsize = param.GetActualSize();
+                        var sqlVectorProps = ((SqlVectorProperties)param.Value);
+                        maxsize = 8 + sqlVectorProps.ElementCount*sqlVectorProps.ElementSize;
+                        //maxsize = param.GetActualSize();
                     }
 
                     WriteParameterVarLen(mt, maxsize, false /*IsNull*/, stateObj);
@@ -10040,7 +10042,7 @@ namespace Microsoft.Data.SqlClient
             else if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
             {
                 //VectorDimensionType needs to be populated in scale
-                stateObj.WriteByte(0x0);
+                stateObj.WriteByte(((SqlVectorProperties)param.Value).ElementType);
             }
 
             // write out collation or xml metadata
@@ -10121,7 +10123,7 @@ namespace Microsoft.Data.SqlClient
                 {
                     // for codePageEncoded types, WriteValue simply expects the number of characters
                     // For plp types, we also need the encoded byte size
-                    byte writeScale = mt.SqlDbType == SqlDbTypeExtensions.Vector ? (byte)0x0 : param.GetActualScale();
+                    byte writeScale = mt.SqlDbType == SqlDbTypeExtensions.Vector ? ((SqlVectorProperties)param.Value).ElementType : param.GetActualScale();
                     writeParamTask = WriteValue(value, mt, isParameterEncrypted ? (byte)0 : writeScale, actualSize, codePageByteSize, isParameterEncrypted ? 0 : param.Offset, stateObj, isParameterEncrypted ? 0 : param.Size, isDataFeed);
                 }
             }

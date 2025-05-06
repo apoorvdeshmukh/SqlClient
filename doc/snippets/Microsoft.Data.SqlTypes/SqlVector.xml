@@ -34,6 +34,11 @@
         Indicates the size in bytes for the type of the element in vector.
       </summary>
     </ElementSize>
+    <ElementType>
+      <summary>
+        Indicates the type in bytes for the type of the element in vector.
+      </summary>
+    </ElementType>
     <Values>
       <summary>
         Represents array of elements contained in SqlVector.

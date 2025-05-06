@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Data.SqlTypes;
+using System.Runtime.InteropServices;
+using Microsoft.Data.SqlClient;
 
 #nullable enable
 namespace Microsoft.Data.SqlTypes
 {
     /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/SqlVector/*' />
-    public class SqlVector<T> where T : unmanaged
+    public class SqlVector<T> : SqlVectorProperties, INullable where T : unmanaged
     {
 
 
@@ -34,6 +37,15 @@ namespace Microsoft.Data.SqlTypes
 
             _length = values.Length;
             _values = values;
+
+            _elementType = typeof(T) switch
+            {
+                Type t when t == typeof(float) => 0x0,
+                Type t when t == typeof(Half) => 0x1,
+                _ => throw new NotSupportedException(
+         $"Type {typeof(T)} is not supported. Only float, Half, and int are allowed.")
+            };
+
             _rawbytes = new byte[8 + _length * _elementSize];
             initBytes();
 
@@ -44,27 +56,28 @@ namespace Microsoft.Data.SqlTypes
 
             int elementSize = _elementSize;
             int arrayLength = _length;
-            byte[] byteArray = new byte[8 + arrayLength * elementSize];
-
+            
             // Prefix bytes
-            byteArray[0] = 0xA9;
-            byteArray[1] = 0x01;
-            byteArray[2] = (byte)(arrayLength & 0xFF);
-            byteArray[3] = (byte)((arrayLength >> 8) & 0xFF);
+            _rawbytes[0] = 0xA9;
+            _rawbytes[1] = 0x01;
+            _rawbytes[2] = (byte)(arrayLength & 0xFF);
+            _rawbytes[3] = (byte)((arrayLength >> 8) & 0xFF);
 
             // Set type indicator
             if (typeof(T) == typeof(float))
-                byteArray[4] = 0;
+                _rawbytes[4] = 0;
             else
                 throw new NotSupportedException($"Type {typeof(T)} is not supported.");
 
             // Remaining prefix bytes
-            byteArray[5] = 0x00;
-            byteArray[6] = 0x00;
-            byteArray[7] = 0x00;
+            _rawbytes[5] = 0x00;
+            _rawbytes[6] = 0x00;
+            _rawbytes[7] = 0x00;
 
             // Copy data
-            Buffer.BlockCopy(_rawbytes, 0, byteArray, 8, arrayLength * elementSize);
+            var byteSpan = MemoryMarshal.AsBytes(new Span<T>(_values));
+            byteSpan.CopyTo(_rawbytes.AsSpan(8));
+            //Buffer.BlockCopy(_rawbytes, 8, Values, 0, ElementCount * ElementSize);
         }
 
         // Convert a byte array to a T value, or throw ArgumentException.
@@ -135,6 +148,9 @@ namespace Microsoft.Data.SqlTypes
         // Returns the number of bytes each element occupies.
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/ElementSize/*' />
         public int ElementSize => _elementSize;
+
+        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/ElementType/*' />
+        public byte ElementType => _elementType;
 
         // Returns the values of the vector.
         //
@@ -210,6 +226,7 @@ namespace Microsoft.Data.SqlTypes
         private readonly int _length;
         private readonly T[]? _values;
         private readonly byte[] _rawbytes;
+        private readonly byte _elementType;
 
         #endregion
     }

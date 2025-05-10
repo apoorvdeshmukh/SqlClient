@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Data.SqlTypes;
 
+
 namespace Microsoft.Data.SqlClient
 {
     internal sealed partial class SqlBuffer
@@ -37,6 +38,13 @@ namespace Microsoft.Data.SqlClient
             DateTimeOffset,
             Time,
             Json,
+            FloatVector,
+        }
+
+        internal struct  VectorInfo
+        {
+            internal int _vectorSize;
+            internal byte _vectorElementType;
         }
 
         internal struct DateTimeInfo
@@ -105,6 +113,8 @@ namespace Microsoft.Data.SqlClient
             internal DateTime2Info _dateTime2Info;
             [FieldOffset(0)]
             internal DateTimeOffsetInfo _dateTimeOffsetInfo;
+            [FieldOffset(0)]
+            internal VectorInfo _vectorInfo;
         }
 
         private bool _isNull;
@@ -180,6 +190,10 @@ namespace Microsoft.Data.SqlClient
             get
             {
                 ThrowIfNull();
+                if (_type == StorageType.FloatVector)
+                {
+                    return ((SqlVector<float>)_object).RawBytes;
+                }
                 return SqlBinary.Value;
             }
         }
@@ -662,6 +676,14 @@ namespace Microsoft.Data.SqlClient
                     }
                     return (SqlBinary)_object;
                 }
+                if (_type == StorageType.FloatVector)
+                {
+                    if (IsNull)
+                    {
+                        return SqlBinary.Null;
+                    }
+                    return (SqlBinary)((SqlVector<float>)_object).RawBytes;
+                }
                 return (SqlBinary)SqlValue; // anything else we haven't thought of goes through boxing.
             }
             set
@@ -939,7 +961,27 @@ namespace Microsoft.Data.SqlClient
             }
         }
 
+        internal SqlVector<float> FloatVector
+        {
+            get
+            {
+                // String and Json storage type are both strings.
+                if (StorageType.FloatVector == _type)
+                {
+                    if (IsNull)
+                    {
+                        new SqlVector<float>(_value._vectorInfo._vectorSize);
+                    }
+                    return (SqlVector<float>)_object;
+                }
+                
+                return (SqlVector<float>)SqlValue; // anything else we haven't thought of goes through boxing.
+            }
+        }
+
+
         internal SqlJson SqlJson => (StorageType.Json == _type) ? (IsNull ? SqlTypes.SqlJson.Null : new SqlJson((string)_object)) : (SqlJson)SqlValue;
+        //internal SqlVector<float> FloatVector => (StorageType.FloatVector == _type) ? (IsNull ? new SqlVector<float>(_value._vectorInfo._vectorSize) : (SqlVector<float>)_object) : (SqlVector<float>)SqlValue;
 
         internal object SqlValue
         {
@@ -975,6 +1017,8 @@ namespace Microsoft.Data.SqlClient
                         return SqlString;
                     case StorageType.Json:
                         return SqlJson;
+                    case StorageType.FloatVector:
+                        return FloatVector;
                     case StorageType.SqlCachedBuffer:
                         {
                             SqlCachedBuffer data = (SqlCachedBuffer)(_object);
@@ -1094,6 +1138,8 @@ namespace Microsoft.Data.SqlClient
                         return Time;
                     case StorageType.Json:
                         return String;
+                    case StorageType.FloatVector:
+                        return ByteArray;
                 }
                 return null; // need to return the value as an object of some CLS type
             }
@@ -1141,6 +1187,8 @@ namespace Microsoft.Data.SqlClient
                         return typeof(SqlXml);
                     case StorageType.Json:
                         return typeof(SqlJson);
+                    case StorageType.FloatVector:
+                        return typeof(SqlVector<float>);
                         // Time Date DateTime2 and DateTimeOffset have no direct Sql type to contain them
                 }
             }
@@ -1190,6 +1238,8 @@ namespace Microsoft.Data.SqlClient
                         return typeof(DateTimeOffset);
                     case StorageType.Json:
                         return typeof(string);
+                    case StorageType.FloatVector:
+                        return typeof(byte[]);
 #if NET
                     case StorageType.Time:
                         return typeof(TimeOnly);
@@ -1236,6 +1286,16 @@ namespace Microsoft.Data.SqlClient
             _isNull = false;
             _type = StorageType.Empty;
             _object = null;
+        }
+
+        internal void SetToFloatVector(int vectorSize, byte vectorType, byte[] vector)
+        {
+            Debug.Assert(IsEmpty, "setting value a second time?");
+            _value._vectorInfo._vectorSize = vectorSize;
+            _value._vectorInfo._vectorElementType = vectorType;
+            _object = new SqlVector<float>(vectorSize, vector, BitConverter.ToSingle);
+            _type = StorageType.FloatVector;
+            _isNull = false;
         }
 
         internal void SetToDateTime(int daypart, int timepart)

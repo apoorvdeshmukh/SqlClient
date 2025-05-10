@@ -2835,6 +2835,14 @@ namespace Microsoft.Data.SqlClient
             return json;
         }
 
+        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlClient/SqlDataReader.xml' path='docs/members[@name="SqlDataReader"]/GetSqlJson/*' />
+        virtual public SqlVector<float> GetSqlVector(int i)
+        {
+            ReadColumn(i);
+            SqlVector<float> vector = _data[i].IsNull ? new SqlVector<float>((_metaData[i].length-8)/sizeof(float)) : _data[i].FloatVector;
+            return vector;
+        }
+
         /// <include file='../../../../../../doc/snippets/Microsoft.Data.SqlClient/SqlDataReader.xml' path='docs/members[@name="SqlDataReader"]/GetSqlValue/*' />
         virtual public object GetSqlValue(int i)
         {

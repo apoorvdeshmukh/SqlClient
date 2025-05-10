@@ -105,14 +105,14 @@ namespace Microsoft.Data.SqlTypes
                   nameof(raw));
             }
 
-            if (raw.Length % _elementSize != 0)
+            if ((raw.Length) % _elementSize != 0)
             {
                 throw new ArgumentException(
                     $"{nameof(raw)} length={raw.Length} must be a multiple of " +
                     $"{_elementName} size={_elementSize}",
                     nameof(raw));
             }
-            if (raw.Length / _elementSize != length)
+            if ((raw.Length) / _elementSize != length)
             {
                 throw new ArgumentException(
                     $"{nameof(raw)} length={raw.Length} must be equal to " +
@@ -130,6 +130,8 @@ namespace Microsoft.Data.SqlTypes
 
                 _values[i] = converter(span);
             }
+            _rawbytes = new byte[8 + _length * _elementSize];
+            initBytes();
         }
 
         #endregion

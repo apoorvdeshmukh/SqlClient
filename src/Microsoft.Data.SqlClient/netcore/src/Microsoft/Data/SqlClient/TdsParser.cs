@@ -11,6 +11,8 @@ using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+
 #if NET
 using System.Security.Authentication;
 #else
@@ -30,6 +32,8 @@ using Microsoft.Data.Sql;
 using Microsoft.Data.SqlClient.DataClassification;
 using Microsoft.Data.SqlClient.LocalDb;
 using Microsoft.Data.SqlClient.Server;
+using Microsoft.Data.SqlTypes;
+
 #if NETFRAMEWORK
 using Microsoft.Data.SqlTypes;
 #endif
@@ -6380,6 +6384,7 @@ namespace Microsoft.Data.SqlClient
                 case TdsEnums.SQLBIGVARBINARY:
                 case TdsEnums.SQLVARBINARY:
                 case TdsEnums.SQLIMAGE:
+                case TdsEnums.SQLVECTOR:
                     byte[] b = null;
 
                     // If varbinary(max), we only read the first chunk here, expecting the caller to read the rest
@@ -6459,7 +6464,14 @@ namespace Microsoft.Data.SqlClient
                     }
                     else
                     {
-                        value.SqlBinary = SqlBinary.WrapBytes(b); // doesn't copy the byte array
+                        if (md.tdsType == TdsEnums.SQLVECTOR)
+                        {
+                            value.SetToFloatVector((md.length-8)/4, md.scale, b.Skip(8).ToArray());
+                        }
+                        else
+                        {
+                            value.SqlBinary = SqlBinary.WrapBytes(b); // doesn't copy the byte array
+                        }
                     }
                     break;
 
@@ -11178,7 +11190,7 @@ namespace Microsoft.Data.SqlClient
                         case TdsEnums.SQLIMAGE:
                         case TdsEnums.SQLUDT:
                         case TdsEnums.SQLVECTOR:
-                            ccb = (isSqlType) ? ((SqlBinary)value).Length : ((byte[])value).Length;
+                            ccb = (isSqlType) ? ((SqlVector<float>)value).RawBytes.Length : ((byte[])value).Length;
                             break;
                         case TdsEnums.SQLUNIQUEID:
                             ccb = GUID_SIZE;

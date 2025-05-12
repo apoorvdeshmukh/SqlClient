@@ -985,7 +985,7 @@ namespace Microsoft.Data.SqlClient
 
         internal static readonly MetaType s_MetaJson = new(255, 255, -1, false, true, true, TdsEnums.SQLJSON, TdsEnums.SQLJSON, MetaTypeName.JSON, typeof(string), typeof(string), SqlDbTypeExtensions.Json, DbType.String, 0);
 
-        internal static readonly MetaType s_MetaFloatVector = new(255, 0, -1, false, false, false, TdsEnums.SQLVECTOR, TdsEnums.SQLVECTOR, MetaTypeName.VECTOR, typeof(byte[]), typeof(SqlBinary), SqlDbTypeExtensions.Vector, DbType.Binary, 2);
+        internal static readonly MetaType s_MetaFloatVector = new(255, 0, -1, false, false, false, TdsEnums.SQLVECTOR, TdsEnums.SQLVECTOR, MetaTypeName.VECTOR, typeof(byte[]), typeof(SqlVector<float>), SqlDbTypeExtensions.Vector, DbType.Binary, 2);
 
         public static TdsDateTime FromDateTime(DateTime dateTime, byte cb)
         {

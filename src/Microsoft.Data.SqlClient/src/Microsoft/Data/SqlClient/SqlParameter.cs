@@ -763,12 +763,6 @@ namespace Microsoft.Data.SqlClient
                 SetFlag(SqlParameterFlags.IsNull, _value == null || (_value == DBNull.Value) || (HasFlag(SqlParameterFlags.IsSqlParameterSqlType) && _valueAsINullable.IsNull));
                 _udtLoadError = null;
                 _actualSize = -1;
-                //if (value.GetType() == typeof(SqlVector<float>))
-                //{
-                //    var vectorProps = (SqlVectorProperties)value;
-                //    _actualSize = 8 + vectorProps.ElementCount * vectorProps.ElementSize;
-                //    _size = _actualSize;
-                //}
             }
         }
 
@@ -2428,6 +2422,10 @@ namespace Microsoft.Data.SqlClient
                 if (value is SqlBytes sqlBytes)
                 {
                     return sqlBytes.Value.Length;
+                }
+                if (value is SqlVector<float> floatVector)
+                {
+                    return 8 + floatVector.ElementCount * floatVector.ElementSize;
                 }
             }
             else

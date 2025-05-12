@@ -11676,6 +11676,13 @@ namespace Microsoft.Data.SqlClient
                         }
                     }
 
+                case TdsEnums.SQLVECTOR:
+                    if (value is SqlVector<float>)
+                    {
+                        return stateObj.WriteByteArray(((SqlVector<float>)value).RawBytes, actualLength, offset, canAccumulate: false);
+                    }
+                    break;
+
                 case TdsEnums.SQLUNIQUEID:
                     {
                         Debug.Assert(actualLength == 16, "Invalid length for guid type in com+ object");

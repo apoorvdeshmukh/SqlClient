@@ -173,7 +173,7 @@ namespace Microsoft.Data.SqlTypes
         }
 
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/RawBytes/*' />
-        internal byte[] RawBytes
+        public byte[] RawBytes
         {
             get
             {

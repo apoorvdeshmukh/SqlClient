@@ -721,6 +721,13 @@ namespace Microsoft.Data.SqlClient.Server
                     throw ADP.Argument(StringsHelper.GetString(Strings.ADP_InvalidDataLength2, maxLength.ToString(CultureInfo.InvariantCulture)), nameof(maxLength));
                 }
             }
+            else if (SqlDbTypeExtensions.Vector == dbType)
+            {
+                if ((maxLength > MaxBinaryLength || maxLength < 0) && maxLength != Max)
+                {
+                    throw ADP.Argument(StringsHelper.GetString(Strings.ADP_InvalidDataLength2, maxLength.ToString(CultureInfo.InvariantCulture)), nameof(maxLength));
+                }
+            }
             else if (SqlDbType.Image == dbType)
             {
                 // old-style lobs only allowed with Max length

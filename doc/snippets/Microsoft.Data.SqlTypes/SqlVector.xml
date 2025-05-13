@@ -39,6 +39,11 @@
         Indicates the type in bytes for the type of the element in vector.
       </summary>
     </ElementType>
+    <Null>
+      <summary>
+        Indicates the 0 sized null value in vector.
+      </summary>
+    </Null>
     <Values>
       <summary>
         Represents array of elements contained in SqlVector.

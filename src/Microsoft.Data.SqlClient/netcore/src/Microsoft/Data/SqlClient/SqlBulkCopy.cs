@@ -15,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.Data.Common;
+using Microsoft.Data.SqlTypes;
 
 namespace Microsoft.Data.SqlClient
 {
@@ -130,7 +131,8 @@ namespace Microsoft.Data.SqlClient
             SqlTypeSqlSingle,
             DataFeedStream,
             DataFeedText,
-            DataFeedXml
+            DataFeedXml,
+            SqlTypeSqlVector
         }
 
         // Used to hold column metadata for SqlDataReader case
@@ -1097,7 +1099,17 @@ namespace Microsoft.Data.SqlClient
                                             return new SqlDecimal((decimal)currentRowValue);
                                         }
                                     }
-                                default:
+                                case ValueMethod.SqlTypeSqlVector:
+                                    if (isSqlType)
+                                    {
+                                        return currentRowValue;
+                                    }
+                                    else
+                                    {
+                                        isSqlType = true;
+                                        return currentRowValue;
+                                    }
+                                        default:
                                     {
                                         Debug.Fail($"Current column is marked as being a SqlType, but no SqlType compatible method was provided. Method: {_currentRowMetadata[destRowIndex].Method}");
                                         break;
@@ -1213,7 +1225,7 @@ namespace Microsoft.Data.SqlClient
             bool isSqlType;
             bool isDataFeed;
 
-            if (((_sqlDataReaderRowSource != null) || (_dataTableSource != null)) && ((metadata.metaType.NullableType == TdsEnums.SQLDECIMALN) || (metadata.metaType.NullableType == TdsEnums.SQLNUMERICN)))
+            if (((_sqlDataReaderRowSource != null) || (_dataTableSource != null)) && ((metadata.metaType.NullableType == TdsEnums.SQLDECIMALN) || (metadata.metaType.NullableType == TdsEnums.SQLNUMERICN) || (metadata.metaType.NullableType == TdsEnums.SQLVECTOR)))
             {
                 isDataFeed = false;
 
@@ -1248,6 +1260,11 @@ namespace Microsoft.Data.SqlClient
                 {
                     isSqlType = true;
                     method = ValueMethod.SqlTypeSqlSingle;  // Source Type SqlSingle
+                }
+                else if (typeof(SqlVector<float>) == t)
+                {
+                    isSqlType = true;
+                    method = ValueMethod.SqlTypeSqlVector;  // Source Type SqlSingle
                 }
                 else
                 {

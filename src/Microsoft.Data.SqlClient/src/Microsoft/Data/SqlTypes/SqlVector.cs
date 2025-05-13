@@ -154,6 +154,9 @@ namespace Microsoft.Data.SqlTypes
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/ElementType/*' />
         public byte ElementType => _elementType;
 
+        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/Null/*' />
+        public static SqlVector<T> Null => new(0);
+
         // Returns the values of the vector.
         //
         // Throws NullReferenceException if the vector is null.

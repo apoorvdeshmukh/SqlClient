@@ -4387,7 +4387,14 @@ namespace Microsoft.Data.SqlClient
 
             if (isNull)
             {
-                GetNullSqlValue(rec.value, rec, SqlCommandColumnEncryptionSetting.Disabled, _connHandler);
+                if (rec.metaType.SqlDbType == SqlDbTypeExtensions.Vector)
+                {
+                    GetNullSqlVectorValue(rec.value, rec, (tdsLen - 8) / GetVectorElementSize(rec.scale));
+                }
+                else
+                {
+                    GetNullSqlValue(rec.value, rec, SqlCommandColumnEncryptionSetting.Disabled, _connHandler);
+                }
             }
             else
             {
@@ -5743,6 +5750,12 @@ namespace Microsoft.Data.SqlClient
             }
         }
 
+        internal static void GetNullSqlVectorValue(SqlBuffer nullVal,
+            SqlMetaDataPriv md,int len)
+        {
+            nullVal.SetToNullVector(SqlBuffer.StorageType.FloatVector, len, md.scale);
+        }
+
         internal static object GetNullSqlValue(SqlBuffer nullVal,
             SqlMetaDataPriv md,
             SqlCommandColumnEncryptionSetting columnEncryptionSetting,
@@ -5858,7 +5871,16 @@ namespace Microsoft.Data.SqlClient
                     break;
 
                 case SqlDbTypeExtensions.Vector:
-                    nullVal.SetToNullOfType(SqlBuffer.StorageType.SqlBinary);
+                    //nullVal.SetToNullOfType(SqlBuffer.StorageType.SqlBinary);
+                    if (md.scale == 0)
+                    {
+                        nullVal.SetToNullVector(SqlBuffer.StorageType.FloatVector, 3, md.scale);
+                        //nullVal.SetToNullOfType(SqlBuffer.StorageType.FloatVector);
+                    }
+                    else
+                    {
+                        nullVal.SetToNullOfType(SqlBuffer.StorageType.SqlBinary);
+                    }
                     break;
 
                 default:
@@ -6466,7 +6488,7 @@ namespace Microsoft.Data.SqlClient
                     {
                         if (md.tdsType == TdsEnums.SQLVECTOR)
                         {
-                            value.SetToFloatVector((md.length-8)/4, md.scale, b.Skip(8).ToArray());
+                            value.SetToFloatVector((b.Length-8)/GetVectorElementSize(md.scale), md.scale, b.Skip(8).ToArray());
                         }
                         else
                         {
@@ -6526,6 +6548,20 @@ namespace Microsoft.Data.SqlClient
 
             Debug.Assert((stateObj._longlen == 0) && (stateObj._longlenleft == 0), "ReadSqlValue did not read plp field completely, longlen =" + stateObj._longlen.ToString((IFormatProvider)null) + ",longlenleft=" + stateObj._longlenleft.ToString((IFormatProvider)null));
             return TdsOperationStatus.Done;
+        }
+
+        private int GetVectorElementSize(byte scale)
+        {
+            switch (scale)
+            {
+                case 0:
+                    return 4;
+                case 1:
+                    return 2;
+                default:
+                    return 4;
+
+            }
         }
 
         private TdsOperationStatus TryReadByteArrayWithContinue(TdsParserStateObject stateObj, int length, out byte[] bytes)
@@ -9689,7 +9725,11 @@ namespace Microsoft.Data.SqlClient
             if (param.Direction == ParameterDirection.Output)
             {
                 isSqlVal = param.ParameterIsSqlType;  // We have to forward the TYPE info, we need to know what type we are returning.  Once we null the parameter we will no longer be able to distinguish what type were seeing.
-                param.Value = null;
+                if (mt.SqlDbType != SqlDbTypeExtensions.Vector)
+                {
+                    param.Value = null;
+                }
+
                 param.ParameterIsSqlType = isSqlVal;
             }
             else

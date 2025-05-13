@@ -966,22 +966,20 @@ namespace Microsoft.Data.SqlClient
             get
             {
                 // String and Json storage type are both strings.
-                if (StorageType.FloatVector == _type)
+                if (_type == StorageType.FloatVector)
                 {
                     if (IsNull)
                     {
-                        new SqlVector<float>(_value._vectorInfo._vectorSize);
+                        return new SqlVector<float>(_value._vectorInfo._vectorSize);
                     }
                     return (SqlVector<float>)_object;
                 }
-                
                 return (SqlVector<float>)SqlValue; // anything else we haven't thought of goes through boxing.
             }
         }
 
 
         internal SqlJson SqlJson => (StorageType.Json == _type) ? (IsNull ? SqlTypes.SqlJson.Null : new SqlJson((string)_object)) : (SqlJson)SqlValue;
-        //internal SqlVector<float> FloatVector => (StorageType.FloatVector == _type) ? (IsNull ? new SqlVector<float>(_value._vectorInfo._vectorSize) : (SqlVector<float>)_object) : (SqlVector<float>)SqlValue;
 
         internal object SqlValue
         {
@@ -1293,7 +1291,7 @@ namespace Microsoft.Data.SqlClient
             Debug.Assert(IsEmpty, "setting value a second time?");
             _value._vectorInfo._vectorSize = vectorSize;
             _value._vectorInfo._vectorElementType = vectorType;
-            _object = new SqlVector<float>(vectorSize, vector, BitConverter.ToSingle);
+            _object = new SqlVector<float>(vectorSize, vector, Converters.ToSingle);
             _type = StorageType.FloatVector;
             _isNull = false;
         }
@@ -1327,6 +1325,16 @@ namespace Microsoft.Data.SqlClient
             _value._int64 = value;
             _type = StorageType.Money;
             _isNull = false;
+        }
+
+        internal void SetToNullVector(StorageType storageType, int vectorDimensions, byte elementType)
+        {
+            Debug.Assert(IsEmpty, "setting value a second time?");
+            _value._vectorInfo._vectorSize = vectorDimensions;
+            _value._vectorInfo._vectorElementType = elementType;
+            _object = new SqlVector<float>(vectorDimensions);
+            _type = storageType;
+            _isNull = true;
         }
 
         internal void SetToNullOfType(StorageType storageType)

@@ -136,11 +136,9 @@ namespace Microsoft.Data.SqlTypes
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/ElementName/*' />
         public string ElementName { get { throw null; } }
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/ElementSize/*' />
-        public int ElementSize { get { throw null; } }
+        public byte ElementSize { get { throw null; } }
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/Values/*' />
         public T[] values { get { throw null; } }
-        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/RawBytes/*' />
-        public byte[] RawBytes { get { throw null; } }
     }
 }
 namespace Microsoft.Data.SqlClient

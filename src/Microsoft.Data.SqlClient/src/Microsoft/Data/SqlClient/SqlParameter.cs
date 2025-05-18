@@ -22,6 +22,13 @@ using Microsoft.Data.SqlTypes;
 
 namespace Microsoft.Data.SqlClient
 {
+    internal interface SqlTDSVector
+    {
+        int ElementCount { get; }
+        byte ElementSize { get; }
+        byte ElementType { get; }
+        byte[] VectorPayload { get; }
+    }
     internal abstract class DataFeed
     {
     }
@@ -2150,6 +2157,11 @@ namespace Microsoft.Data.SqlClient
                 }
                 return sqlString.Value.Length;
             }
+            if (value is SqlTDSVector sqlVector)
+            {
+                return sqlVector.VectorPayload.Length;
+            }
+
             if (value is SqlChars sqlChars)
             {
                 if (sqlChars.IsNull)
@@ -2321,9 +2333,10 @@ namespace Microsoft.Data.SqlClient
                         value = ((TimeOnly)value).ToTimeSpan();
                     }
 #endif
-                    else if (currentType == typeof(SqlVector<float>))
+                    //else if (currentType == typeof(SqlVector<float>))
+                    else if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(SqlVector<>))
                     {
-                        value = (value as SqlVector<float>).RawBytes;
+                        value = (value as SqlTDSVector).VectorPayload;
                     }
                     else if (
                         TdsEnums.SQLTABLE == destinationType.TDSType &&

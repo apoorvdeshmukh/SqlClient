@@ -6438,7 +6438,7 @@ namespace Microsoft.Data.SqlClient
                 }
                 else if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
                 {
-                    var sqlVectorProps = (SqlTDSVector)sqlParam.Value;
+                    var sqlVectorProps = (SqlVectorProperties)sqlParam.Value;
                     paramList.Append('(');
                     paramList.Append(sqlVectorProps.ElementCount);
                     paramList.Append(')');

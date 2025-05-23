@@ -6,6 +6,7 @@ using System;
 using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Globalization;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.Data.SqlTypes;
 
@@ -37,6 +38,7 @@ namespace Microsoft.Data.SqlClient
             DateTimeOffset,
             Time,
             Json,
+            Vector,
         }
 
         internal struct DateTimeInfo
@@ -76,6 +78,12 @@ namespace Microsoft.Data.SqlClient
             internal short _offset;
         }
 
+        internal struct VectorInfo
+        {
+            internal int _vectorElementCount;
+            internal byte _vectorElementType;
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal struct Storage
         {
@@ -105,6 +113,8 @@ namespace Microsoft.Data.SqlClient
             internal DateTime2Info _dateTime2Info;
             [FieldOffset(0)]
             internal DateTimeOffsetInfo _dateTimeOffsetInfo;
+            [FieldOffset(0)]
+            internal VectorInfo _vectorInfo;
         }
 
         private bool _isNull;
@@ -114,6 +124,15 @@ namespace Microsoft.Data.SqlClient
 
         internal SqlBuffer()
         {
+        }
+
+        internal Storage GetVectorInfo()
+        {
+            if (StorageType.Vector == _type)
+            {
+                return _value;
+            }
+            throw new InvalidOperationException();
         }
 
         private SqlBuffer(SqlBuffer value)
@@ -179,7 +198,10 @@ namespace Microsoft.Data.SqlClient
         {
             get
             {
-                ThrowIfNull();
+                if (_type != StorageType.Vector)
+                {
+                    ThrowIfNull();
+                }
                 return SqlBinary.Value;
             }
         }
@@ -654,7 +676,7 @@ namespace Microsoft.Data.SqlClient
         {
             get
             {
-                if (StorageType.SqlBinary == _type)
+                if (StorageType.SqlBinary == _type || StorageType.Vector == _type)
                 {
                     if (IsNull)
                     {
@@ -987,6 +1009,7 @@ namespace Microsoft.Data.SqlClient
 
                     case StorageType.SqlBinary:
                     case StorageType.SqlGuid:
+                    case StorageType.Vector:
                         return _object;
 
                     case StorageType.SqlXml:
@@ -1067,6 +1090,7 @@ namespace Microsoft.Data.SqlClient
                     case StorageType.String:
                         return String;
                     case StorageType.SqlBinary:
+                    case StorageType.Vector:
                         return ByteArray;
                     case StorageType.SqlCachedBuffer:
                         {
@@ -1141,6 +1165,8 @@ namespace Microsoft.Data.SqlClient
                         return typeof(SqlXml);
                     case StorageType.Json:
                         return typeof(SqlJson);
+                    case StorageType.Vector:
+                        return typeof(object);
                         // Time Date DateTime2 and DateTimeOffset have no direct Sql type to contain them
                 }
             }
@@ -1190,6 +1216,8 @@ namespace Microsoft.Data.SqlClient
                         return typeof(DateTimeOffset);
                     case StorageType.Json:
                         return typeof(string);
+                    case StorageType.Vector:
+                        return typeof(byte[]);
 #if NET
                     case StorageType.Time:
                         return typeof(TimeOnly);
@@ -1236,6 +1264,14 @@ namespace Microsoft.Data.SqlClient
             _isNull = false;
             _type = StorageType.Empty;
             _object = null;
+        }
+
+        internal void SetVectorInfo(int elementCount, byte elementType, bool isNull)
+        {
+            _value._vectorInfo._vectorElementCount = elementCount;
+            _value._vectorInfo._vectorElementType = elementType;
+            _type = StorageType.Vector;
+            _isNull = isNull;
         }
 
         internal void SetToDateTime(int daypart, int timepart)

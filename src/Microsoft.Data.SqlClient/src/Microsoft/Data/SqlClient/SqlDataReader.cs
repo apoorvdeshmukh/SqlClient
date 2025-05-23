@@ -2835,6 +2835,67 @@ namespace Microsoft.Data.SqlClient
             return json;
         }
 
+        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlClient/SqlDataReader.xml' path='docs/members[@name="SqlDataReader"]/GetSqlVector/*' />
+        virtual public SqlVector<T> GetSqlVector<T>(int i) where T : unmanaged
+        {
+            ReadColumn(i);
+            //byte elementType = _metaData[i].scale;
+            //int elementCount = (_metaData[i].length - 8) / SqlTdsVector.GetVectorDimensionTypeSize(elementType);
+            //var vector = _data[i].IsNull ? new SqlTdsVector(elementCount, elementType) : _data[i].SqlTdsVector;
+            if (typeof(T) == typeof(float))
+            {
+                int elementCount = (_metaData[i].length - 8) / 4;
+
+                if (!_data[i].IsNull)
+                {
+                    Span<byte> raw = _data[i].SqlBinary.Value;
+                    return (SqlVector<T>)(Object)(new SqlVector<float>(elementCount, raw, Converters.ToSingle));
+                }
+                else
+                {
+                    return (SqlVector<T>)(Object)(new SqlVector<float>(elementCount));
+                }
+            }
+
+            else
+            {
+                throw new NotSupportedException($"Type {typeof(T)} is not supported");
+            }
+
+        }
+        //public SqlVector<T> GetSqlVector<T>(int i) where T : unmanaged
+        //{
+        //    if (typeof(T) == typeof(float))
+        //    {
+        //        return UnsafeCast<SqlVector<float>, SqlVector<T>>(GetSqlVectorFloat(i));
+        //    }
+
+        //    throw new NotSupportedException($"Type {typeof(T)} is not supported.");
+        //}
+
+
+        //private SqlVector<float> GetSqlVectorFloat(int i)
+        //{
+        //    ReadColumn(i);
+        //    int elementCount = (_metaData[i].length - 8) / 4;
+        //    if (!_data[i].IsNull)
+        //    {
+        //        Span<byte> raw = _data[i].SqlBinary.Value;
+        //        return new SqlVector<float>(elementCount, raw, Converters.ToSingle);
+        //    }
+        //    else
+        //    {
+        //        return new SqlVector<float>(elementCount);
+        //    }
+        //}
+
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //private static TTo UnsafeCast<TFrom, TTo>(TFrom source)
+        //{
+        //    return Unsafe.As<TFrom, TTo>(ref source);
+        //}
+
+
         /// <include file='../../../../../../doc/snippets/Microsoft.Data.SqlClient/SqlDataReader.xml' path='docs/members[@name="SqlDataReader"]/GetSqlValue/*' />
         virtual public object GetSqlValue(int i)
         {
@@ -2990,6 +3051,16 @@ namespace Microsoft.Data.SqlClient
                 statistics = SqlStatistics.StartTimer(Statistics);
 
                 SetTimeout(_defaultTimeoutMilliseconds);
+                if (_metaData[i].metaType.SqlDbType == SqlDbTypeExtensions.Vector)
+                {
+                    switch (_metaData[i].scale)
+                    {
+                        case 0:
+                            return GetSqlVector<float>(i);
+                        default:
+                            throw new NotSupportedException($"SqlVector<T> returned from server is not supported.");
+                    }
+                }
                 return GetValueInternal(i);
             }
             finally
@@ -3297,6 +3368,10 @@ namespace Microsoft.Data.SqlClient
                 }
                 JsonDocument document = JsonDocument.Parse(data.Value as string);
                 return (T)(object)document;
+            }
+            else if (typeof(T) == typeof(byte[]))
+            {
+                return (T)(object)data.ByteArray;
             }
             else
             {

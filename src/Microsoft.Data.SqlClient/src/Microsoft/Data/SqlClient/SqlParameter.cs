@@ -22,7 +22,7 @@ using Microsoft.Data.SqlTypes;
 
 namespace Microsoft.Data.SqlClient
 {
-    internal interface SqlTDSVector
+    internal interface SqlVectorProperties
     {
         int ElementCount { get; }
         byte ElementSize { get; }
@@ -746,6 +746,30 @@ namespace Microsoft.Data.SqlClient
                 {
                     if (ParameterIsSqlType)
                     {
+                        byte elementType = _sqlBufferReturnValue.GetVectorInfo()._vectorInfo._vectorElementType;
+                        int elementCount = _sqlBufferReturnValue.GetVectorInfo()._vectorInfo._vectorElementCount;
+                        Span<byte> raw = (byte[])_sqlBufferReturnValue.Value;
+                        if (_sqlBufferReturnValue.VariantInternalStorageType == SqlBuffer.StorageType.Vector)
+                        {
+                            if (IsNull)
+                            {
+                                switch (elementType)
+                                {
+                                    case 0x0:
+                                        return new SqlVector<float>(elementCount);
+                                    default:
+                                        return new SqlVector<float>(elementCount);
+                                }
+                            }
+                            switch (elementType)
+                            {
+                                case 0x0:
+                                    return new SqlVector<float>(elementCount, raw, Converters.ToSingle);
+                                default:
+                                    return new SqlVector<float>(elementCount, raw, Converters.ToSingle);
+                            }
+                            
+                        }
                         return _sqlBufferReturnValue.SqlValue;
                     }
                     return _sqlBufferReturnValue.Value;
@@ -2157,7 +2181,7 @@ namespace Microsoft.Data.SqlClient
                 }
                 return sqlString.Value.Length;
             }
-            if (value is SqlTDSVector sqlVector)
+            if (value is SqlVectorProperties sqlVector)
             {
                 return sqlVector.VectorPayload.Length;
             }
@@ -2336,7 +2360,7 @@ namespace Microsoft.Data.SqlClient
                     //else if (currentType == typeof(SqlVector<float>))
                     else if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(SqlVector<>))
                     {
-                        value = (value as SqlTDSVector).VectorPayload;
+                        value = (value as SqlVectorProperties).VectorPayload;
                     }
                     else if (
                         TdsEnums.SQLTABLE == destinationType.TDSType &&

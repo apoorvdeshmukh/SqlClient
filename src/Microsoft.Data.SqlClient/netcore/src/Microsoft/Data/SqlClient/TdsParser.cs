@@ -30,6 +30,8 @@ using Microsoft.Data.Sql;
 using Microsoft.Data.SqlClient.DataClassification;
 using Microsoft.Data.SqlClient.LocalDb;
 using Microsoft.Data.SqlClient.Server;
+using Microsoft.Data.SqlTypes;
+
 #if NETFRAMEWORK
 using Microsoft.Data.SqlTypes;
 #endif
@@ -4381,21 +4383,27 @@ namespace Microsoft.Data.SqlClient
                 intlen = int.MaxValue;    // If plp data, read it all
             }
 
+            if(rec.type == SqlDbTypeExtensions.Vector)
+            {
+                rec.length = tdsLen;
+            }
+
             if (isNull)
             {
                 GetNullSqlValue(rec.value, rec, SqlCommandColumnEncryptionSetting.Disabled, _connHandler);
+                
             }
             else
             {
                 // We should never do any decryption here, so pass disabled as the command encryption override.
                 // We only read the binary value and decryption will be performed by OnReturnValue().
                 result = TryReadSqlValue(rec.value, rec, intlen, stateObj, SqlCommandColumnEncryptionSetting.Disabled, columnName: null /*Not used*/);
+                
                 if (result != TdsOperationStatus.Done)
                 {
                     return result;
                 }
             }
-
             returnValue = rec;
             return TdsOperationStatus.Done;
         }
@@ -5854,7 +5862,8 @@ namespace Microsoft.Data.SqlClient
                     break;
 
                 case SqlDbTypeExtensions.Vector:
-                    nullVal.SetToNullOfType(SqlBuffer.StorageType.SqlBinary);
+                    nullVal.SetToNullOfType(SqlBuffer.StorageType.Vector);
+                    nullVal.SetVectorInfo(MetaType.GetVectorElementCount(md.length, md.scale), md.scale, true);
                     break;
 
                 default:
@@ -6463,6 +6472,17 @@ namespace Microsoft.Data.SqlClient
                     }
                     break;
 
+                case TdsEnums.SQLVECTOR:
+                    result = TryReadByteArrayWithContinue(stateObj, length, out b);
+                    if (result != TdsOperationStatus.Done)
+                    {
+                        return result;
+                    }
+                    value.SqlBinary= SqlBinary.WrapBytes(b);
+                    int elementCount = BinaryPrimitives.ReadUInt16LittleEndian(b.AsSpan(2));
+                    byte elementType = b[4];
+                    value.SetVectorInfo(elementCount, elementType, false);
+                    break;
                 case TdsEnums.SQLCHAR:
                 case TdsEnums.SQLBIGCHAR:
                 case TdsEnums.SQLVARCHAR:
@@ -9677,7 +9697,10 @@ namespace Microsoft.Data.SqlClient
             if (param.Direction == ParameterDirection.Output)
             {
                 isSqlVal = param.ParameterIsSqlType;  // We have to forward the TYPE info, we need to know what type we are returning.  Once we null the parameter we will no longer be able to distinguish what type were seeing.
-                param.Value = null;
+                if (mt.SqlDbType != SqlDbTypeExtensions.Vector)
+                {
+                    param.Value = null;
+                }
                 param.ParameterIsSqlType = isSqlVal;
             }
             else
@@ -10017,7 +10040,7 @@ namespace Microsoft.Data.SqlClient
 
                     if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
                     {
-                        var sqlVectorProps = ((SqlTDSVector)param.Value);
+                        var sqlVectorProps = ((SqlVectorProperties)param.Value);
                         maxsize = 8 + sqlVectorProps.ElementCount * sqlVectorProps.ElementSize;
                         //maxsize = param.GetActualSize();
                     }
@@ -10047,7 +10070,7 @@ namespace Microsoft.Data.SqlClient
             else if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
             {
                 //VectorDimensionType needs to be populated in scale
-                stateObj.WriteByte(((SqlTDSVector)param.Value).ElementType);
+                stateObj.WriteByte(((SqlVectorProperties)param.Value).ElementType);
             }
 
             // write out collation or xml metadata
@@ -10128,7 +10151,7 @@ namespace Microsoft.Data.SqlClient
                 {
                     // for codePageEncoded types, WriteValue simply expects the number of characters
                     // For plp types, we also need the encoded byte size
-                    byte writeScale = mt.SqlDbType == SqlDbTypeExtensions.Vector ? ((SqlTDSVector)param.Value).ElementType : param.GetActualScale();
+                    byte writeScale = mt.SqlDbType == SqlDbTypeExtensions.Vector ? ((SqlVectorProperties)param.Value).ElementType : param.GetActualScale();
                     writeParamTask = WriteValue(value, mt, isParameterEncrypted ? (byte)0 : writeScale, actualSize, codePageByteSize, isParameterEncrypted ? 0 : param.Offset, stateObj, isParameterEncrypted ? 0 : param.Size, isDataFeed);
                 }
             }

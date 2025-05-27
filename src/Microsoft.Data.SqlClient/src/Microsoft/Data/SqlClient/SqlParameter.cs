@@ -1603,6 +1603,7 @@ namespace Microsoft.Data.SqlClient
                         case SqlDbType.VarBinary:
                         case SqlDbType.Image:
                         case SqlDbType.Timestamp:
+                        case SqlDbTypeExtensions.Vector:
                             coercedSize = (!HasFlag(SqlParameterFlags.IsNull) && (!HasFlag(SqlParameterFlags.CoercedValueIsDataFeed))) ? (BinarySize(val, HasFlag(SqlParameterFlags.CoercedValueIsSqlType))) : 0;
                             _actualSize = (ShouldSerializeSize() ? Size : 0);
                             _actualSize = ((ShouldSerializeSize() && (_actualSize <= coercedSize)) ? _actualSize : coercedSize);
@@ -2141,6 +2142,10 @@ namespace Microsoft.Data.SqlClient
 
         private int ValueSize(object value)
         {
+            if (value is ISqlVector sqlVector)
+            {
+                return sqlVector.VectorPayload.Length;
+            }
             if (value is SqlString sqlString)
             {
                 if (sqlString.IsNull)
@@ -2309,6 +2314,10 @@ namespace Microsoft.Data.SqlClient
                     else if ((currentType == typeof(DateTime)) && (destinationType.SqlDbType == SqlDbType.DateTimeOffset))
                     {
                         value = new DateTimeOffset((DateTime)value);
+                    }
+                    else if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == typeof(SqlVector<>))
+                    {
+                        value = (value as ISqlVector).VectorPayload;
                     }
 #if NET
                     else if ((currentType == typeof(DateOnly)) && (destinationType.SqlDbType == SqlDbType.Date))

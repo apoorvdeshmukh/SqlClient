@@ -629,6 +629,10 @@ namespace Microsoft.Data.SqlClient
                     {
                         AppendColumnNameAndTypeName(updateBulkCommandText, metadata.column, "json");
                     }
+                    else if (metadata.type == SqlDbTypeExtensions.Vector)
+                    {
+                        AppendColumnNameAndTypeName(updateBulkCommandText, metadata.column, "vector");
+                    }
                     else
                     {
                         AppendColumnNameAndTypeName(updateBulkCommandText, metadata.column, metadata.type.ToString());
@@ -672,6 +676,9 @@ namespace Microsoft.Data.SqlClient
                                     case TdsEnums.SQLNVARCHAR:
                                     case TdsEnums.SQLNTEXT:
                                         size /= 2;
+                                        break;
+                                    case TdsEnums.SQLVECTOR:
+                                        size = MetaType.GetVectorElementCount(metadata.length, metadata.scale);
                                         break;
                                     default:
                                         break;
@@ -911,6 +918,16 @@ namespace Microsoft.Data.SqlClient
             }
         }
 
+        private object GetVectorValueFromSourceRow(DbDataReader sourceDbDataReader, int sourceOrdinal)
+        {
+            object value = sourceDbDataReader.GetValue(sourceOrdinal);
+            if (value is INullable)
+            {
+                value = ((INullable)value).IsNull ? DBNull.Value : value;
+            }
+            return value;
+        }
+
         // Unified method to read a value from the current row
         private object GetValueFromSourceRow(int destRowIndex, out bool isSqlType, out bool isDataFeed, out bool isNull)
         {
@@ -991,7 +1008,15 @@ namespace Microsoft.Data.SqlClient
                             isSqlType = false;
                             isDataFeed = false;
 
-                            object value = _sqlDataReaderRowSource.GetValue(sourceOrdinal);
+                            object value;
+                            if (metadata.metaType.SqlDbType == SqlDbTypeExtensions.Vector)
+                            {
+                                value = GetVectorValueFromSourceRow(_sqlDataReaderRowSource, sourceOrdinal);
+                            }
+                            else
+                            {
+                                value = _sqlDataReaderRowSource.GetValue(sourceOrdinal);
+                            }
                             isNull = ((value == null) || (value == DBNull.Value));
                             if ((!isNull) && (metadata.type == SqlDbType.Udt))
                             {
@@ -1579,6 +1604,7 @@ namespace Microsoft.Data.SqlClient
                     case TdsEnums.SQLTIME:
                     case TdsEnums.SQLDATETIME2:
                     case TdsEnums.SQLDATETIMEOFFSET:
+                    case TdsEnums.SQLVECTOR:
                         mt = MetaType.GetMetaTypeFromSqlDbType(type.SqlDbType, false);
                         value = SqlParameter.CoerceValue(value, mt, out coercedToDataFeed, out typeChanged, false);
                         break;

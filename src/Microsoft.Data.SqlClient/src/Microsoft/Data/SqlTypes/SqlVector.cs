@@ -17,7 +17,7 @@ namespace Microsoft.Data.SqlTypes
         public SqlVector(int length)
         : this()
         {
-            _length = length;
+            _elementCount = length;
         }
 
         // Construct a vector with an array of values.
@@ -34,15 +34,24 @@ namespace Microsoft.Data.SqlTypes
                     nameof(values));
             }
 
-            _length = values.Length;
+            _elementCount = values.Length;
             _elementType = typeof(T) switch
             {
                 Type t when t == typeof(float) => 0x0,
                 _ => throw new NotSupportedException(
          $"Type {typeof(T)} is not supported. Only float allowed.")
             };
-            _rawbytes = new byte[8 + _length * _elementSize];
+            _rawbytes = new byte[8 + _elementCount * _elementSize];
             initBytes(values);
+        }
+
+        internal SqlVector(byte[] data)
+            : this()
+        {
+            _rawbytes = data;
+            _elementCount = data[2] | (data[3] << 8);
+            _elementType = data[4];
+            _elementSize = (byte)MetaType.GetVectorElementSize(_elementType);
         }
 
         #endregion
@@ -55,7 +64,7 @@ namespace Microsoft.Data.SqlTypes
         public static SqlVector<T> Null => new(0);
 
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVector.xml' path='docs/members[@name="SqlVector"]/ElementCount/*' />
-        public int ElementCount => _length;
+        public int ElementCount => _elementCount;
 
         // Returns the values of the vector.
         //
@@ -122,7 +131,7 @@ namespace Microsoft.Data.SqlTypes
         {
 
             int elementSize = _elementSize;
-            int arrayLength = _length;
+            int arrayLength = _elementCount;
 
 
             // Prefix bytes
@@ -187,7 +196,7 @@ namespace Microsoft.Data.SqlTypes
         #region Fields
 
         private readonly byte _elementSize;
-        private readonly int _length;
+        private readonly int _elementCount;
         private readonly byte[] _rawbytes;
         private readonly byte _elementType;
 

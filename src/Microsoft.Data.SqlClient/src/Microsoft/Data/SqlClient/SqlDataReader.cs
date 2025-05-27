@@ -28,6 +28,7 @@ using Microsoft.Data.SqlClient.DataClassification;
 using Microsoft.Data.SqlClient.Server;
 using Microsoft.Data.SqlTypes;
 
+
 namespace Microsoft.Data.SqlClient
 {
     /// <include file='../../../../../../doc/snippets/Microsoft.Data.SqlClient/SqlDataReader.xml' path='docs/members[@name="SqlDataReader"]/SqlDataReader/*' />
@@ -2835,6 +2836,30 @@ namespace Microsoft.Data.SqlClient
             return json;
         }
 
+        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlClient/SqlDataReader.xml' path='docs/members[@name="SqlDataReader"]/GetSqlVector/*' />
+        virtual public SqlVector<T> GetSqlVector<T>(int i) where T : unmanaged
+        {
+            ReadColumn(i);
+            if (typeof(T) == typeof(float))
+            {
+                int elementCount = (_metaData[i].length - 8) / 4;
+
+                if (!_data[i].IsNull)
+                {
+                    return (SqlVector<T>)(Object)(new SqlVector<float>(_data[i].SqlBinary.Value));
+                }
+                else
+                {
+                    return (SqlVector<T>)(Object)(new SqlVector<float>(elementCount));
+                }
+            }
+
+            else
+            {
+                throw new NotSupportedException($"Type {typeof(T)} is not supported");
+            }
+        }
+
         /// <include file='../../../../../../doc/snippets/Microsoft.Data.SqlClient/SqlDataReader.xml' path='docs/members[@name="SqlDataReader"]/GetSqlValue/*' />
         virtual public object GetSqlValue(int i)
         {
@@ -2990,6 +3015,16 @@ namespace Microsoft.Data.SqlClient
                 statistics = SqlStatistics.StartTimer(Statistics);
 
                 SetTimeout(_defaultTimeoutMilliseconds);
+                if (_metaData[i].metaType.SqlDbType == SqlDbTypeExtensions.Vector)
+                {
+                    switch (_metaData[i].scale)
+                    {
+                        case 0:
+                            return GetSqlVector<float>(i);
+                        default:
+                            throw new NotSupportedException($"Unsupported vector type");
+                    }
+                }
                 return GetValueInternal(i);
             }
             finally

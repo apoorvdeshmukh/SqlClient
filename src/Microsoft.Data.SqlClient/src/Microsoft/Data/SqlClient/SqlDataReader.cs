@@ -3222,6 +3222,17 @@ namespace Microsoft.Data.SqlClient
                 return (T)(object)data.TimeOnly;
             }
 #endif
+            else if(typeof(T) == typeof(float[]) && dataType == typeof(byte[]))
+            {
+                if (!data.IsNull)
+                {
+                    return (T)(object)(new SqlFloatVector(data.SqlBinary.Value).ToArray());
+                }
+                else
+                {
+                    return (T)(object)Array.Empty<float>();
+                }
+            }
             else if (typeof(T) == typeof(XmlReader))
             {
                 // XmlReader only allowed on XML types

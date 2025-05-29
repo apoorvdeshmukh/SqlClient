@@ -1925,6 +1925,10 @@ namespace Microsoft.Data.SqlClient
         {
             if (_metaType != null)
             {
+                if (_metaType.SqlDbType == SqlDbTypeExtensions.Vector && (_value == null || _value == DBNull.Value))
+                {
+                    return MetaType.GetDefaultMetaType();
+                }
                 return _metaType;
             }
             if (_value != null && DBNull.Value != _value)
@@ -2180,7 +2184,8 @@ namespace Microsoft.Data.SqlClient
             }
             if (value is ISqlVector sqlVector)
             {
-                return sqlVector.VectorPayload.Length;
+                return 8 + (sqlVector.Length * sqlVector.ElementSize);
+                ;
             }
             if (value is SqlChars sqlChars)
             {
@@ -2212,6 +2217,7 @@ namespace Microsoft.Data.SqlClient
                 // Unknown length
                 return 0;
             }
+
             return ValueSizeCore(value);
         }
 
@@ -2356,6 +2362,10 @@ namespace Microsoft.Data.SqlClient
                     else if (currentType == typeof(SqlFloatVector))
                     {
                         value = (value as ISqlVector).VectorPayload;
+                    }
+                    else if (currentType == typeof(System.Single[]))
+                    {
+                        value = MetaType.GetVectorPayloadForFloat(value as float[]);
                     }
                     else if (
                         TdsEnums.SQLTABLE == destinationType.TDSType &&

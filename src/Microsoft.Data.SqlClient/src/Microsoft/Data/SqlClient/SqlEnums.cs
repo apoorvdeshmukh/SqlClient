@@ -14,6 +14,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Xml;
 using Microsoft.Data.Common;
 using Microsoft.Data.SqlTypes;
@@ -380,7 +381,7 @@ namespace Microsoft.Data.SqlClient
                         return MetaXml;
                     else if (dataType == typeof(SqlJson))
                         return s_MetaJson;
-                    else if (dataType == typeof(SqlFloatVector))
+                    else if (dataType == typeof(SqlFloatVector) || dataType == typeof(float[]))
                         return s_MetaVector;
                     else if (dataType == typeof(SqlString))
                     {
@@ -1051,6 +1052,64 @@ namespace Microsoft.Data.SqlClient
             {
                 case 0: return 4;
                 default: return 4;
+            }
+        }
+
+        internal static byte[] GetVectorPayloadForFloat(float[] data)
+        {
+            byte[] result = new byte[8 + (data.Length * sizeof(float))];
+            result[0] = 0xA9;
+            result[1] = 0x01;
+            result[2] = (byte)(data.Length & 0xFF);
+            result[3] = (byte)((data.Length >> 8) & 0xFF);
+
+            // Set type indicator
+            result[4] = 0;
+
+            // Remaining prefix bytes
+            result[5] = 0x00;
+            result[6] = 0x00;
+            result[7] = 0x00;
+
+            // Copy data
+#if NETFRAMEWORK
+            // Manual block copy
+            Buffer.BlockCopy(data, 0, result, 8, data.Length * sizeof(float));
+#else
+            // Fast span-based copy
+            var byteSpan = MemoryMarshal.AsBytes(data.AsSpan());
+            byteSpan.CopyTo(result.AsSpan(8));
+#endif
+            return result;
+        }
+
+        internal static int GetVectorSize(object value)
+        {
+            int elementCnt;
+            int elementSize;
+            if (value.GetType() == typeof(float[]))
+            {
+                elementSize = sizeof(float);
+                elementCnt = ((float[])value).Length;
+                return 8 + (elementCnt * elementSize);
+            }
+            else
+            {
+                elementSize = ((ISqlVector)value).ElementSize;
+                elementCnt = ((ISqlVector)value).Length;
+                return 8 + (elementCnt * elementSize);
+            }
+        }
+
+        internal static byte GetVectorType(object value)
+        {
+            if (value.GetType() == typeof(float[]))
+            {
+                return 0; // 8 bytes for header + 4 bytes per float
+            }
+            else
+            {
+                return ((ISqlVector)value).ElementType;
             }
         }
 

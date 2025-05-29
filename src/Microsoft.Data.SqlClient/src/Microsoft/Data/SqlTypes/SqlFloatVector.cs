@@ -80,7 +80,7 @@ namespace Microsoft.Data.SqlTypes
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlFloatVector.xml' path='docs/members[@name="SqlFloatVector"]/Null/*' />
         public static SqlFloatVector Null => new(0);
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlFloatVector.xml' path='docs/members[@name="SqlFloatVector"]/ElementCount/*' />
-        public int ElementCount => _elementCount;
+        public int Length => _elementCount;
 
         byte ISqlVector.ElementType => _elementType;
         byte ISqlVector.ElementSize => _elementSize;

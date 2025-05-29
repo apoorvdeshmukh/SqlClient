@@ -6830,9 +6830,17 @@ namespace Microsoft.Data.SqlClient
                 }
                 else if (mt.SqlDbType == SqlDbTypeExtensions.Vector)
                 {
-                    var sqlVectorProps = (ISqlVector)sqlParam.Value;
+                    int length;
+                    if (sqlParam.Value.GetType() == typeof(System.Single[]))
+                    {
+                        length = ((float[])sqlParam.Value).Length;
+                    }
+                    else
+                    {
+                        length = ((ISqlVector)sqlParam.Value).Length;
+                    }
                     paramList.Append('(');
-                    paramList.Append(sqlVectorProps.ElementCount);
+                    paramList.Append(length);
                     paramList.Append(')');
                 }
                 else if (!mt.IsFixed && !mt.IsLong && mt.SqlDbType != SqlDbType.Timestamp && mt.SqlDbType != SqlDbType.Udt && SqlDbType.Structured != mt.SqlDbType)

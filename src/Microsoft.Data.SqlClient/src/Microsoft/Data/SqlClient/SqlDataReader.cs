@@ -2839,7 +2839,7 @@ namespace Microsoft.Data.SqlClient
         virtual public SqlVectorFloat32 GetSqlVectorFloat32(int i)
         {
             ReadColumn(i);
-            int elementCount = (_metaData[i].length - 8) / 4;
+            int elementCount = (_metaData[i].length - TdsEnums.VECTOR_HEADER_SIZE) / MetaType.GetVectorElementSize(_metaData[i].scale);
 
             if (!_data[i].IsNull)
             {
@@ -3222,6 +3222,20 @@ namespace Microsoft.Data.SqlClient
                 return (T)(object)data.TimeOnly;
             }
 #endif
+            else if (typeof(T) == typeof(SqlVectorFloat32))
+            {
+                int elementCount = (metaData.length - TdsEnums.VECTOR_HEADER_SIZE) / MetaType.GetVectorElementSize(metaData.scale);
+                object value;
+                if (!data.IsNull)
+                {
+                    value = new SqlVectorFloat32(data.SqlBinary.Value);
+                }
+                else
+                {
+                    value = new SqlVectorFloat32(elementCount);
+                }
+                return (T)value;
+            }
             else if (typeof(T) == typeof(XmlReader))
             {
                 // XmlReader only allowed on XML types

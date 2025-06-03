@@ -20,10 +20,10 @@ namespace Microsoft.Data.SqlTypes
         }
 
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/ctor2/*' />
-        public SqlVectorFloat32(float[] values)
+        public SqlVectorFloat32(ReadOnlyMemory<float> values)
         : this()
         {
-            if (values == null)
+            if (values.IsEmpty)
             {
                 throw new ArgumentException($"Array cannot be null");
             }
@@ -36,32 +36,6 @@ namespace Microsoft.Data.SqlTypes
         #endregion
 
         #region Methods
-        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/ToArray/*' />
-        public float[] ToArray()
-        {
-
-            if (_rawbytes == null || _rawbytes.Length < 8)
-                throw new ArgumentException("Invalid byte array");
-
-            // Read element count from bytes 2 and 3 (little-endian)
-            int elementCount = _rawbytes[2] | (_rawbytes[3] << 8);
-
-            // Validate expected size
-            int expectedLength = 8 + elementCount * sizeof(float);
-            if (_rawbytes.Length < expectedLength)
-                throw new ArgumentException("Byte array does not contain enough data");
-
-#if NETFRAMEWORK
-    float[] result = new float[elementCount];
-    Buffer.BlockCopy(_rawbytes, 8, result, 0, elementCount * sizeof(float));
-    return result;
-#else
-            ReadOnlySpan<byte> dataSpan = _rawbytes.AsSpan(8, elementCount * sizeof(float));
-            return MemoryMarshal.Cast<byte, float>(dataSpan).ToArray();
-#endif
-
-        }
-
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/ToString/*' />
         public override string ToString()
         {
@@ -69,7 +43,7 @@ namespace Microsoft.Data.SqlTypes
             {
                 return "NULL";
             }
-            return JsonSerializer.Serialize(this.ToArray());
+            return JsonSerializer.Serialize(this.Values);
         }
 
         #endregion
@@ -81,6 +55,25 @@ namespace Microsoft.Data.SqlTypes
         public static SqlVectorFloat32 Null => new (0);
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/ElementCount/*' />
         public int Length => _elementCount;
+        /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/Values/*' />
+        public float[] Values 
+        {
+
+            get
+            {
+                int elementCount = _rawbytes[2] | (_rawbytes[3] << 8);
+#if NETFRAMEWORK
+                // Allocate array and copy bytes into it
+                float[] result = new float[elementCount];
+                Buffer.BlockCopy(_rawbytes, 8, result, 0, elementCount * sizeof(float));
+                return result;
+#else
+        // Use MemoryMarshal to reinterpret bytes as float without copying
+        ReadOnlySpan<byte> dataSpan = _rawbytes.AsSpan(8, elementCount * sizeof(float));
+        return MemoryMarshal.Cast<byte, float>(dataSpan).ToArray(); // Still needs ToArray to return ReadOnlyMemory<float>
+#endif
+            }
+        }
 
         byte ISqlVector.ElementType => _elementType;
         byte ISqlVector.ElementSize => _elementSize;
@@ -100,7 +93,7 @@ namespace Microsoft.Data.SqlTypes
         #endregion
 
         #region Helpers
-        private void initBytes(float[] values)
+        private void initBytes(ReadOnlyMemory<float> values)
         {
             // Prefix bytes
             _rawbytes[0] = 0xA9;
@@ -118,11 +111,18 @@ namespace Microsoft.Data.SqlTypes
 
             // Copy data
 #if NETFRAMEWORK
-            // Manual block copy
-            Buffer.BlockCopy(values, 0, _rawbytes, 8, values.Length * sizeof(float));
+            
+            if (MemoryMarshal.TryGetArray(values, out ArraySegment<float> segment))
+            {
+                Buffer.BlockCopy(segment.Array, segment.Offset * sizeof(float), _rawbytes, 8, segment.Count * sizeof(float));
+            }
+            else
+            {
+                Buffer.BlockCopy(values.ToArray(), 0, _rawbytes, 8, values.Length * sizeof(float));
+            }
 #else
             // Fast span-based copy
-            var byteSpan = MemoryMarshal.AsBytes(values.AsSpan());
+            var byteSpan = MemoryMarshal.AsBytes(values.Span);
             byteSpan.CopyTo(_rawbytes.AsSpan(8));
 #endif
         }
@@ -155,8 +155,8 @@ namespace Microsoft.Data.SqlTypes
             {
                 return false;
             }
-            // Check for valid prefix
-            if (rawbytes[0] != 0xA9 || rawbytes[1] != 0x01)
+            
+            if (rawbytes[0] != 0xA9 || rawbytes[1] != 0x01 || rawbytes[4] != 0)
             {
                 return false;
             }

@@ -27,10 +27,10 @@
         Indicates the count of the elements in the float vector.
       </summary>
     </ElementCount>
-    <ToArray>
+    <Values>
       <summary>Returns the internal float array representing the float vector.</summary>
       <returns>An array of <see cref="T:System.Single"/> values.</returns>
-    </ToArray>
+    </Values>
     <ToString>
       <summary>Returns a JSON string representing the internal float array representing the float vector.</summary>
       <returns>A JSON <see cref="T:System.String"/> value.</returns>

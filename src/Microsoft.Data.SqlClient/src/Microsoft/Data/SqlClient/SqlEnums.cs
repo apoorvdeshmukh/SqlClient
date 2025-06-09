@@ -1049,8 +1049,9 @@ namespace Microsoft.Data.SqlClient
         {
             switch (type)
             {
-                case 0: return 4;
-                default: return 4;
+                case 0: return sizeof(float);
+                default:
+                    throw new NotSupportedException($"Vector element type '{type}' is not supported.");
             }
         }
 

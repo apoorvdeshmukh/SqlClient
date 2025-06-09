@@ -771,7 +771,7 @@ namespace Microsoft.Data.SqlClient
             {
                  switch (elementType)
                  {
-                     case 0x0:
+                     case (byte)MetaType.SqlVectorElementType.Float32:
                          return new SqlVectorFloat32(elementCount);
                      default:
                         throw ADP.InvalidEnumerationValue(typeof(MetaType.SqlVectorElementType), elementType);
@@ -779,7 +779,7 @@ namespace Microsoft.Data.SqlClient
              }
              switch (elementType)
              {
-                case 0x0:
+                case (byte)MetaType.SqlVectorElementType.Float32:
                     return new SqlVectorFloat32((byte[])_sqlBufferReturnValue.Value);
                 default:
                     throw ADP.InvalidEnumerationValue(typeof(MetaType.SqlVectorElementType), elementType);
@@ -1927,6 +1927,7 @@ namespace Microsoft.Data.SqlClient
             {
                 if (_metaType.SqlDbType == SqlDbTypeExtensions.Vector && (_value == null || _value == DBNull.Value))
                 {
+                    _value = DBNull.Value;
                     return MetaType.GetDefaultMetaType();
                 }
                 return _metaType;
@@ -2031,6 +2032,11 @@ namespace Microsoft.Data.SqlClient
             if (metaType.SqlDbType != SqlDbType.Udt && Direction != ParameterDirection.Output)
             {
                 GetCoercedValue();
+            }
+
+            if (metaType.SqlDbType == SqlDbTypeExtensions.Vector && _value == null && (Direction == ParameterDirection.Output || Direction == ParameterDirection.InputOutput))
+            {
+                throw new ArgumentException("'null' value not supported for output parameters of SqlDbType Vector");
             }
 
             //check if the UdtTypeName is specified for Udt params

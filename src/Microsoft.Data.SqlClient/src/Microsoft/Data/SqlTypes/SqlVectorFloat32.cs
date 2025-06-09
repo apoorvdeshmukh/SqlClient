@@ -10,13 +10,51 @@ namespace Microsoft.Data.SqlTypes
     /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/SqlVectorFloat32/*' />
     public class SqlVectorFloat32 : INullable, ISqlVector
     {
-        #region Constructors
+        #region Constants
+        private const byte VecHeaderMagicNo = 0xA9;
+        private const byte VecVersionNo = 0x01;
+        private const byte VecTypeIndicator = 0x00;
+        #endregion
 
+        #region Fields
+        private readonly byte _elementSize;
+        private readonly int _elementCount;
+        private readonly byte[] _rawBytes;
+        private readonly byte _elementType;
+        #endregion
+
+        #region Constructors
+        private SqlVectorFloat32()
+        {
+            _elementType = (byte)MetaType.SqlVectorElementType.Float32;
+            _elementSize = sizeof(float);
+            _elementCount = 0;
+            _rawBytes = Array.Empty<byte>();
+        }
+
+        internal SqlVectorFloat32(byte[] rawBytes)
+        {
+            if (!ValidateRawBytes(rawBytes))
+            {
+                throw new ArgumentException(
+                  $"Invalid vector header received");
+            }
+            _rawBytes = rawBytes;
+            _elementCount = rawBytes[2] | (rawBytes[3] << 8);
+            _elementType = rawBytes[4];
+            _elementSize = sizeof(float);
+        }
+        
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/ctor1/*' />
         public SqlVectorFloat32(int length)
-        : this()
         {
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length), "Vector column length must be non-negative");
+
             _elementCount = length;
+            _elementType = (byte)MetaType.SqlVectorElementType.Float32;
+            _elementSize = sizeof(float);
+            _rawBytes = Array.Empty<byte>();
         }
 
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/ctor2/*' />
@@ -25,153 +63,110 @@ namespace Microsoft.Data.SqlTypes
         {
             if (values.IsEmpty)
             {
-                throw new ArgumentException($"Array cannot be null");
+                throw new ArgumentException("Values cannot be null or empty.", nameof(values));
             }
 
             _elementCount = values.Length;
-            _rawbytes = new byte[8 + _elementCount * sizeof(float)];
-            initBytes(values);
+            _rawBytes = new byte[TdsEnums.VECTOR_HEADER_SIZE + _elementCount * sizeof(float)];
+            InitializeVectorBytes(values);
         }
-
         #endregion
 
         #region Methods
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/ToString/*' />
         public override string ToString()
         {
-            if (IsNull || _rawbytes == null)
+            if (IsNull || _rawBytes == null)
             {
                 return "NULL";
             }
             return JsonSerializer.Serialize(this.Values);
         }
-
         #endregion
 
         #region Properties
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/IsNull/*' />
-        public bool IsNull => _rawbytes == null || _rawbytes.Length == 0;
+        public bool IsNull => _rawBytes.Length == 0;
+
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/Null/*' />
-        public static SqlVectorFloat32 Null => new (0);
+        public static SqlVectorFloat32? Null => null;
+
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/ElementCount/*' />
         public int Length => _elementCount;
+
         /// <include file='../../../../doc/snippets/Microsoft.Data.SqlTypes/SqlVectorFloat32.xml' path='docs/members[@name="SqlVectorFloat32"]/Values/*' />
         public float[] Values 
         {
-
             get
             {
-                int elementCount = _rawbytes[2] | (_rawbytes[3] << 8);
+                if (_rawBytes.Length == 0)
+                {
+                    return Array.Empty<float>();
+                }
+                int elementCount = _rawBytes[2] | (_rawBytes[3] << 8);
 #if NETFRAMEWORK
                 // Allocate array and copy bytes into it
                 float[] result = new float[elementCount];
-                Buffer.BlockCopy(_rawbytes, 8, result, 0, elementCount * sizeof(float));
+                Buffer.BlockCopy(_rawBytes, 8, result, 0, elementCount * sizeof(float));
                 return result;
 #else
-        // Use MemoryMarshal to reinterpret bytes as float without copying
-        ReadOnlySpan<byte> dataSpan = _rawbytes.AsSpan(8, elementCount * sizeof(float));
-        return MemoryMarshal.Cast<byte, float>(dataSpan).ToArray(); // Still needs ToArray to return ReadOnlyMemory<float>
+        ReadOnlySpan<byte> dataSpan = _rawBytes.AsSpan(8, elementCount * sizeof(float));
+        return MemoryMarshal.Cast<byte, float>(dataSpan).ToArray();
 #endif
             }
         }
+        #endregion
 
+        #region ISqlVectorProperties
         byte ISqlVector.ElementType => _elementType;
         byte ISqlVector.ElementSize => _elementSize;
-        byte[] ISqlVector.VectorPayload
-        {
-            get
-            {
-                if (_rawbytes is null)
-                {
-                    throw new System.NullReferenceException(
-                        $"SqlVectorFloat32 is null");
-                }
-                return _rawbytes;
-            }
-        }
-
+        byte[] ISqlVector.VectorPayload => _rawBytes;
         #endregion
 
         #region Helpers
-        private void initBytes(ReadOnlyMemory<float> values)
+        private void InitializeVectorBytes(ReadOnlyMemory<float> values)
         {
-            // Prefix bytes
-            _rawbytes[0] = 0xA9;
-            _rawbytes[1] = 0x01;
-            _rawbytes[2] = (byte)(_elementCount & 0xFF);
-            _rawbytes[3] = (byte)((_elementCount >> 8) & 0xFF);
-
-            // Set type indicator
-            _rawbytes[4] = 0;
-
-            // Remaining prefix bytes
-            _rawbytes[5] = 0x00;
-            _rawbytes[6] = 0x00;
-            _rawbytes[7] = 0x00;
+            //Header Bytes
+            _rawBytes[0] = VecHeaderMagicNo;
+            _rawBytes[1] = VecVersionNo;
+            _rawBytes[2] = (byte)(_elementCount & 0xFF);
+            _rawBytes[3] = (byte)((_elementCount >> 8) & 0xFF);
+            _rawBytes[4] = VecTypeIndicator;
+            _rawBytes[5] = 0x00;
+            _rawBytes[6] = 0x00;
+            _rawBytes[7] = 0x00;
 
             // Copy data
 #if NETFRAMEWORK
-            
             if (MemoryMarshal.TryGetArray(values, out ArraySegment<float> segment))
             {
-                Buffer.BlockCopy(segment.Array, segment.Offset * sizeof(float), _rawbytes, 8, segment.Count * sizeof(float));
+                Buffer.BlockCopy(segment.Array, segment.Offset * sizeof(float), _rawBytes, TdsEnums.VECTOR_HEADER_SIZE, segment.Count * sizeof(float));
             }
             else
             {
-                Buffer.BlockCopy(values.ToArray(), 0, _rawbytes, 8, values.Length * sizeof(float));
+                Buffer.BlockCopy(values.ToArray(), 0, _rawBytes, TdsEnums.VECTOR_HEADER_SIZE, values.Length * sizeof(float));
             }
 #else
             // Fast span-based copy
             var byteSpan = MemoryMarshal.AsBytes(values.Span);
-            byteSpan.CopyTo(_rawbytes.AsSpan(8));
+            byteSpan.CopyTo(_rawBytes.AsSpan(TdsEnums.VECTOR_HEADER_SIZE));
 #endif
         }
 
-        // Acquire the name and size of each T element.
-        private SqlVectorFloat32()
+        private bool ValidateRawBytes(byte[] rawBytes)
         {
-            _elementType = (byte)MetaType.SqlVectorElementType.Float32;
-            _elementSize = (byte)sizeof(float);
-            _rawbytes = Array.Empty<byte>();
-        }
-
-        internal SqlVectorFloat32(byte[] rawbytes)
-        {
-            if (!ValidateRawBytes(rawbytes))
-            {
-                throw new ArgumentException(
-                  $"Invalid vector data in {nameof(rawbytes)} ",
-                  nameof(rawbytes));
-            }
-            _rawbytes = rawbytes;
-            _elementCount = rawbytes[2] | (rawbytes[3] << 8);
-            _elementType = rawbytes[4];
-            _elementSize = (byte)MetaType.GetVectorElementSize(_elementType);
-        }
-
-        private bool ValidateRawBytes(byte[] rawbytes)
-        {
-            if (rawbytes == null || rawbytes.Length == 0)
-            {
+            if (rawBytes.Length == 0 || rawBytes.Length < TdsEnums.VECTOR_HEADER_SIZE)
                 return false;
-            }
             
-            if (rawbytes[0] != 0xA9 || rawbytes[1] != 0x01 || rawbytes[4] != 0)
-            {
+            if (rawBytes[0] != VecHeaderMagicNo || rawBytes[1] != VecVersionNo || rawBytes[4] != VecTypeIndicator)
+                 return false;
+            
+            int elementCount = rawBytes[2] | (rawBytes[3] << 8);
+            if (rawBytes.Length != TdsEnums.VECTOR_HEADER_SIZE + elementCount * sizeof(float))
                 return false;
-            }
+
             return true;
         }
-
-        #endregion
-
-        #region Fields
-
-        private readonly byte _elementSize;
-        private readonly int _elementCount;
-        private readonly byte[] _rawbytes;
-        private readonly byte _elementType;
-
         #endregion
     }
 }

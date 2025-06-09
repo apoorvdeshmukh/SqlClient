@@ -984,6 +984,11 @@ namespace Microsoft.Data.SqlClient
             return ADP.InvalidCast(StringsHelper.GetString(Strings.SQL_TextReaderNotSupportOnColumnType, columnName));
         }
 
+        internal static Exception VectorNotSupportedOnColumnType(string columnName)
+        {
+            return ADP.InvalidCast(StringsHelper.GetString(Strings.SQL_VectorNotSupportedOnColumnType, columnName));
+        }
+
         internal static Exception XmlReaderNotSupportOnColumnType(string columnName)
         {
             return ADP.InvalidCast(StringsHelper.GetString(Strings.SQL_XmlReaderNotSupportOnColumnType, columnName));

@@ -3224,6 +3224,11 @@ namespace Microsoft.Data.SqlClient
 #endif
             else if (typeof(T) == typeof(SqlVectorFloat32))
             {
+                MetaType metaType = metaData.metaType;
+                if (metaType.SqlDbType != SqlDbTypeExtensions.Vector)
+                {
+                    throw SQL.VectorNotSupportedOnColumnType(metaData.column);
+                }
                 int elementCount = (metaData.length - TdsEnums.VECTOR_HEADER_SIZE) / MetaType.GetVectorElementSize(metaData.scale);
                 object value;
                 if (!data.IsNull)

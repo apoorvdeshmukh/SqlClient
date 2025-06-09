@@ -10821,10 +10821,21 @@ namespace System {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid attempt to get vector data from column '{0}'. Vectors are only supported for columns of type vector..
+        /// </summary>
+        internal static string SQL_VectorNotSupportedOnColumnType {
+            get {
+                return ResourceManager.GetString("SQL_VectorNotSupportedOnColumnType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Expecting argument of type {1}, but received type {0}..
         /// </summary>
-        internal static string SQL_WrongType {
-            get {
+        internal static string SQL_WrongType
+        {
+            get
+            {
                 return ResourceManager.GetString("SQL_WrongType", resourceCulture);
             }
         }
